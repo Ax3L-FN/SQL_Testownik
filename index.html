@@ -1,578 +1,727 @@
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SQL Testownik</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f0f13;
-    --bg2: #16161d;
-    --bg3: #1e1e28;
-    --border: #2a2a38;
-    --border2: #3a3a50;
-    --text: #e8e8f0;
-    --text2: #9090b0;
-    --text3: #5a5a78;
-    --accent: #7c6dfa;
-    --accent2: #a594fd;
-    --green: #3ddc84;
-    --red: #ff5c5c;
-    --yellow: #ffc34d;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Syne', sans-serif;
-  }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--bg2:#0e0e1a;--bg3:#141420;--bg4:#1a1a2a;
+  --border:#252535;--border2:#353550;
+  --text:#f0f0ff;--text2:#8888aa;--text3:#444466;
+  --acc:#6c63ff;--acc2:#9d97ff;--acc3:#c4c0ff;
+  --green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00d2ff;
+  --mono:'JetBrains Mono',monospace;--display:'Unbounded',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
 
-  .app { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
 
-  .header { margin-bottom: 2.5rem; }
-  .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
-  .header h1 span { color: var(--accent2); }
-  .header p { color: var(--text2); font-size: 0.9rem; margin-top: 0.4rem; font-family: var(--mono); }
+.app{max-width:900px;margin:0 auto;padding:2rem 1.2rem 5rem;position:relative;z-index:1}
 
-  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 2rem; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.4s ease; border-radius: 2px; }
+/* HEADER */
+.hdr{margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.hdr h1{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;letter-spacing:-0.04em;line-height:1.1}
+.hdr h1 .hl{color:var(--acc2)}
+.hdr-sub{font-size:0.72rem;color:var(--text3);margin-top:.6rem;letter-spacing:.12em;text-transform:uppercase}
+.set-switcher{display:flex;gap:.4rem;flex-shrink:0}
+.set-btn{font-family:var(--display);font-size:.65rem;font-weight:700;padding:.4rem .9rem;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:.15s;letter-spacing:.04em;text-transform:uppercase}
+.set-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.set-btn:hover:not(.active){border-color:var(--acc);color:var(--acc2)}
 
-  .stats { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
-  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 1.1rem; font-family: var(--mono); font-size: 0.8rem; }
-  .stat-val { font-size: 1.2rem; font-weight: 700; display: block; }
-  .stat-val.green { color: var(--green); }
-  .stat-val.red { color: var(--red); }
-  .stat-val.acc { color: var(--accent2); }
+/* PROGRESS */
+.progress-wrap{margin-bottom:2rem}
+.progress-meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text3);margin-bottom:.5rem;letter-spacing:.06em}
+.progress-track{height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--cyan));transition:width .5s cubic-bezier(.4,0,.2,1);border-radius:2px}
 
-  .question-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .q-number { font-family: var(--mono); font-size: 0.75rem; color: var(--text3); margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  .q-text { font-size: 1rem; line-height: 1.6; color: var(--text); margin-bottom: 1.2rem; }
-  .q-text strong { color: var(--accent2); font-weight: 700; }
+/* STATS ROW */
+.stats{display:flex;gap:.7rem;margin-bottom:2rem;flex-wrap:wrap}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem 1rem;font-size:.72rem;color:var(--text2);display:flex;flex-direction:column;gap:.1rem}
+.stat strong{font-size:1.3rem;font-family:var(--display);font-weight:700;display:block}
+.stat strong.g{color:var(--green)}
+.stat strong.r{color:var(--red)}
+.stat strong.a{color:var(--acc2)}
+.stat strong.y{color:var(--yellow)}
 
-  .schema-toggle { font-family: var(--mono); font-size: 0.75rem; color: var(--accent); cursor: pointer; border: 1px solid var(--border2); border-radius: 6px; padding: 0.3rem 0.7rem; display: inline-flex; align-items: center; gap: 0.4rem; background: transparent; margin-bottom: 1rem; }
-  .schema-toggle:hover { border-color: var(--accent); background: rgba(124,109,250,0.08); }
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.3}
+.q-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.q-num{font-size:.65rem;color:var(--text3);letter-spacing:.15em;text-transform:uppercase}
+.q-tags{display:flex;gap:.35rem;flex-wrap:wrap}
+.tag{font-size:.6rem;padding:.18rem .5rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.t-join{background:rgba(108,99,255,.15);color:var(--acc2)}
+.t-where{background:rgba(46,204,113,.12);color:var(--green)}
+.t-order{background:rgba(243,156,18,.12);color:var(--yellow)}
+.t-group{background:rgba(231,76,60,.12);color:var(--red)}
+.t-agg{background:rgba(0,210,255,.12);color:var(--cyan)}
+.t-limit{background:rgba(136,136,170,.15);color:var(--text2)}
+.t-left{background:rgba(255,150,50,.12);color:#ff9632}
+.t-text{background:rgba(200,100,255,.12);color:#c864ff}
+.t-case{background:rgba(255,80,120,.12);color:#ff5080}
+.t-set{background:rgba(50,200,150,.12);color:#32c896}
+.t-trans{background:rgba(255,200,0,.12);color:#ffc800}
 
-  .schema-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1.2rem; font-family: var(--mono); font-size: 0.78rem; }
-  .schema-box h4 { color: var(--yellow); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-  .schema-grid { display: flex; gap: 1.2rem; flex-wrap: wrap; }
-  .schema-table { min-width: 140px; }
-  .schema-table-name { color: var(--accent2); font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; }
-  .schema-col { color: var(--text2); padding: 0.15rem 0; border-bottom: 1px solid var(--border); font-size: 0.76rem; }
-  .schema-col:last-child { border-bottom: none; }
-  .schema-col .col-name { color: var(--text); }
-  .schema-col .col-pk { color: var(--yellow); font-size: 0.65rem; margin-left: 0.3rem; }
-  .schema-col .col-fk { color: var(--green); font-size: 0.65rem; margin-left: 0.3rem; }
+.q-text{font-size:.95rem;line-height:1.7;color:var(--text);margin-bottom:1.3rem}
+.q-text strong{color:var(--acc3);font-weight:700}
 
-  .editor-wrap { position: relative; }
-  .sql-editor { width: 100%; min-height: 100px; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 10px; padding: 1rem; font-family: var(--mono); font-size: 0.88rem; color: var(--text); resize: vertical; outline: none; line-height: 1.7; transition: border-color 0.2s; }
-  .sql-editor:focus { border-color: var(--accent); }
-  .sql-editor.correct { border-color: var(--green); }
-  .sql-editor.wrong { border-color: var(--red); }
+/* SCHEMA */
+.schema-btn{font-size:.7rem;color:var(--acc);border:1px solid var(--border2);background:transparent;border-radius:6px;padding:.28rem .7rem;cursor:pointer;margin-bottom:1rem;display:inline-flex;align-items:center;gap:.35rem;transition:.15s;font-family:var(--mono)}
+.schema-btn:hover{border-color:var(--acc);background:rgba(108,99,255,.08)}
+.schema{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1.2rem;font-size:.74rem}
+.schema-grid{display:flex;gap:1.5rem;flex-wrap:wrap}
+.s-tbl-name{color:var(--acc2);font-weight:700;font-size:.8rem;margin-bottom:.4rem;font-family:var(--display);font-size:.7rem;letter-spacing:.04em}
+.s-col{padding:.13rem 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.s-col:last-child{border-bottom:none}
+.s-col .cn{color:var(--text)}
+.s-col .pk{color:var(--yellow);font-size:.6rem;margin-left:.3rem}
+.s-col .fk{color:var(--green);font-size:.6rem;margin-left:.3rem}
 
-  .actions { display: flex; gap: 0.8rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
-  .btn { font-family: var(--sans); font-weight: 700; font-size: 0.88rem; border: none; border-radius: 8px; padding: 0.6rem 1.3rem; cursor: pointer; transition: all 0.15s; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
-  .btn-secondary { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-  .btn-secondary:hover { border-color: var(--border2); color: var(--text); background: var(--border); }
-  .btn-skip { background: transparent; color: var(--text3); border: 1px solid var(--border); font-size: 0.8rem; }
-  .btn-skip:hover { color: var(--text2); border-color: var(--border2); }
+/* EXPECTED */
+.expected-btn{font-size:.7rem;color:var(--text3);border:1px solid var(--border);background:transparent;border-radius:6px;padding:.28rem .7rem;cursor:pointer;margin-bottom:1rem;display:inline-flex;align-items:center;gap:.35rem;transition:.15s;font-family:var(--mono);margin-left:.5rem}
+.expected-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.expected-box{background:var(--bg3);border:1px solid rgba(243,156,18,.25);border-radius:10px;padding:1rem;margin-bottom:1.2rem;overflow-x:auto}
+.expected-box h5{font-size:.65rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem}
+.result-table{border-collapse:collapse;font-size:.75rem;white-space:nowrap;width:100%}
+.result-table th{background:rgba(243,156,18,.1);color:var(--yellow);padding:.3rem .6rem;text-align:left;border:1px solid rgba(243,156,18,.2);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em}
+.result-table td{padding:.28rem .6rem;border:1px solid var(--border);color:var(--text2)}
+.result-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.null-val{color:var(--text3);font-style:italic}
 
-  .feedback { margin-top: 1rem; border-radius: 10px; padding: 1rem 1.2rem; font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; }
-  .feedback.correct { background: rgba(61,220,132,0.08); border: 1px solid rgba(61,220,132,0.25); color: var(--green); }
-  .feedback.wrong { background: rgba(255,92,92,0.08); border: 1px solid rgba(255,92,92,0.25); color: var(--red); }
-  .feedback .label { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; display: block; }
-  .feedback .expected { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); color: var(--text2); }
-  .feedback .expected span { color: var(--text); }
+/* EDITOR */
+.editor-label{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+.sql-editor{width:100%;min-height:90px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;font-family:var(--mono);font-size:.85rem;color:var(--text);resize:vertical;outline:none;line-height:1.75;transition:border-color .2s;tab-size:2}
+.sql-editor:focus{border-color:var(--acc)}
+.sql-editor.ok{border-color:var(--green)}
+.sql-editor.fail{border-color:var(--red)}
 
-  .hint-btn { font-family: var(--mono); font-size: 0.75rem; color: var(--text3); cursor: pointer; background: none; border: none; margin-left: auto; }
-  .hint-btn:hover { color: var(--yellow); }
-  .hint-box { background: rgba(255,195,77,0.06); border: 1px solid rgba(255,195,77,0.2); border-radius: 8px; padding: 0.7rem 1rem; margin-top: 0.8rem; font-family: var(--mono); font-size: 0.8rem; color: var(--yellow); line-height: 1.6; }
+/* HINT */
+.hint-box{background:rgba(243,156,18,.05);border:1px solid rgba(243,156,18,.2);border-radius:8px;padding:.7rem 1rem;margin-top:.8rem;font-size:.78rem;color:var(--yellow);line-height:1.65}
 
-  .next-btn-wrap { margin-top: 1.2rem; }
+/* FEEDBACK */
+.feedback{margin-top:1rem;border-radius:10px;padding:1rem 1.2rem;font-size:.8rem;line-height:1.65}
+.feedback.ok{background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.22);color:var(--green)}
+.feedback.fail{background:rgba(231,76,60,.07);border:1px solid rgba(231,76,60,.22);color:var(--red)}
+.feedback .fb-label{font-weight:700;font-size:.85rem;margin-bottom:.4rem;display:block;font-family:var(--display);letter-spacing:.02em}
+.feedback .fb-detail{color:var(--text2);margin-top:.5rem;font-size:.76rem}
+.feedback .fb-detail code{color:var(--text);background:var(--bg3);padding:.1rem .3rem;border-radius:3px}
 
-  .summary { text-align: center; padding: 3rem 2rem; }
-  .summary h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
-  .summary .score { font-size: 4rem; font-weight: 800; color: var(--accent2); display: block; margin: 1rem 0; font-family: var(--mono); }
-  .summary p { color: var(--text2); margin-bottom: 2rem; font-family: var(--mono); }
+/* YOUR RESULT TABLE */
+.your-result{margin-top:.8rem}
+.your-result h5{font-size:.65rem;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}
+.your-result.fail h5{color:var(--red)}
+.result-scroll{overflow-x:auto}
 
-  .q-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
-  .tag { font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .tag-join { background: rgba(124,109,250,0.15); color: var(--accent2); }
-  .tag-where { background: rgba(61,220,132,0.12); color: var(--green); }
-  .tag-order { background: rgba(255,195,77,0.12); color: var(--yellow); }
-  .tag-group { background: rgba(255,92,92,0.12); color: var(--red); }
-  .tag-limit { background: rgba(144,144,176,0.15); color: var(--text2); }
-  .tag-left { background: rgba(255,150,50,0.12); color: #ff9632; }
-  .tag-count { background: rgba(100,200,255,0.12); color: #64c8ff; }
+/* ACTIONS */
+.actions{display:flex;gap:.7rem;margin-top:1.1rem;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--display);font-weight:700;font-size:.72rem;border:none;border-radius:8px;padding:.55rem 1.2rem;cursor:pointer;transition:.15s;letter-spacing:.04em;text-transform:uppercase}
+.btn-primary{background:var(--acc);color:#fff}
+.btn-primary:hover{background:var(--acc2);transform:translateY(-1px)}
+.btn-skip{background:transparent;color:var(--text3);border:1px solid var(--border);font-size:.68rem}
+.btn-skip:hover{color:var(--text2);border-color:var(--border2)}
+.btn-hint{background:transparent;color:var(--text3);border:none;font-size:.7rem;cursor:pointer;font-family:var(--mono);margin-left:auto}
+.btn-hint:hover{color:var(--yellow)}
+.btn-next{background:var(--acc);color:#fff}
+.btn-next:hover{background:var(--acc2)}
 
-  @media (max-width: 600px) {
-    .header h1 { font-size: 1.5rem; }
-    .schema-grid { flex-direction: column; }
-  }
+/* SUMMARY */
+.summary{text-align:center;padding:3rem 1rem}
+.summary h2{font-family:var(--display);font-size:2rem;font-weight:900;letter-spacing:-.04em;margin-bottom:1rem}
+.score-big{font-family:var(--display);font-size:4.5rem;font-weight:900;color:var(--acc2);display:block;line-height:1;margin:1rem 0}
+.summary-msg{color:var(--text2);font-size:.82rem;margin-bottom:.5rem}
+.summary-detail{color:var(--text3);font-size:.72rem;margin-bottom:2rem}
+.btn-restart{font-family:var(--display);font-size:.78rem;font-weight:700;background:var(--acc);color:#fff;border:none;border-radius:10px;padding:.8rem 2rem;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.btn-restart:hover{background:var(--acc2)}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:1rem}
+.loading p{color:var(--text2);font-size:.82rem;letter-spacing:.1em;text-transform:uppercase}
+.spinner{width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NAV DOTS */
+.nav-dots{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--border2);cursor:pointer;transition:.2s;flex-shrink:0}
+.dot.done-ok{background:var(--green)}
+.dot.done-fail{background:var(--red)}
+.dot.current{background:var(--acc);transform:scale(1.4)}
+.dot:hover{transform:scale(1.3)}
+
+@media(max-width:580px){
+  .schema-grid{flex-direction:column}
+  .hdr h1{font-size:1.5rem}
+  .set-switcher{width:100%}
+  .set-btn{flex:1;text-align:center}
+}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <h1>SQL <span>Testownik</span></h1>
-    <p>// bazy danych · kwerendy · sql</p>
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <h1>SQL<br><span class="hl">Testownik</span></h1>
+        <div class="hdr-sub">// bazy danych · kwerendy · sqlite</div>
+      </div>
+      <div class="set-switcher">
+        <button class="set-btn active" id="btn-set1" onclick="switchSet(1)">Zestaw 1</button>
+        <button class="set-btn" id="btn-set2" onclick="switchSet(2)">Zestaw 2</button>
+      </div>
+    </div>
   </div>
-
-  <div id="root"></div>
+  <div id="root"><div class="loading"><div class="spinner"></div><p>Ładowanie silnika SQL...</p></div></div>
 </div>
 
 <script>
-const TABLES = {
-  KRAJE: { cols: [
-    { name: 'id_kraju', type: 'number(10)', pk: true },
-    { name: 'nazwa_kraju', type: 'varchar2(50)', nn: true },
-    { name: 'stolica', type: 'varchar2(50)' },
-    { name: 'kod', type: 'char(3)' }
+// ─── SCHEMA DEFINITIONS ────────────────────────────────────────────
+const SCHEMA_DEFS = {
+  KRAJE:{cols:[
+    {name:'id_kraju',type:'INTEGER',pk:true},
+    {name:'nazwa_kraju',type:'TEXT',nn:true},
+    {name:'stolica',type:'TEXT'},
+    {name:'kod',type:'CHAR(3)'}
   ]},
-  FILMY: { cols: [
-    { name: 'id_filmu', type: 'number(10)', pk: true },
-    { name: 'tytul', type: 'varchar2(50)', nn: true },
-    { name: 'gatunek', type: 'varchar2(20)', nn: true },
-    { name: 'wytwornia', type: 'number(10)', nn: true, fk: 'WYTWORNIE.wytwornia_id' }
+  WYTWORNIE:{cols:[
+    {name:'wytwornia_id',type:'INTEGER',pk:true},
+    {name:'nazwa',type:'TEXT',nn:true},
+    {name:'kraj',type:'INTEGER',nn:true,fk:'KRAJE.id_kraju'},
+    {name:'rok_zalozenia',type:'INTEGER',nn:true}
   ]},
-  WYTWORNIE: { cols: [
-    { name: 'wytwornia_id', type: 'number(10)', pk: true },
-    { name: 'nazwa', type: 'varchar2(50)', nn: true },
-    { name: 'kraj', type: 'number(10)', nn: true, fk: 'KRAJE.id_kraju' },
-    { name: 'rok_zalozenia', type: 'number(4)', nn: true }
+  FILMY:{cols:[
+    {name:'id_filmu',type:'INTEGER',pk:true},
+    {name:'tytul',type:'TEXT',nn:true},
+    {name:'gatunek',type:'TEXT',nn:true},
+    {name:'wytwornia',type:'INTEGER',nn:true,fk:'WYTWORNIE.wytwornia_id'},
+    {name:'dlugosc_min',type:'INTEGER'},
+    {name:'ocena',type:'FLOAT'},
+    {name:'budzet_mln',type:'FLOAT'}
   ]},
-  OSOBY: { cols: [
-    { name: 'id_osoby', type: 'number(10)', pk: true },
-    { name: 'imie', type: 'varchar2(30)', nn: true },
-    { name: 'nazwisko', type: 'varchar2(50)', nn: true },
-    { name: 'kraj', type: 'number(10)', nn: true, fk: 'KRAJE.id_kraju' }
+  OSOBY:{cols:[
+    {name:'id_osoby',type:'INTEGER',pk:true},
+    {name:'imie',type:'TEXT',nn:true},
+    {name:'nazwisko',type:'TEXT',nn:true},
+    {name:'kraj',type:'INTEGER',nn:true,fk:'KRAJE.id_kraju'},
+    {name:'rok_urodzenia',type:'INTEGER'}
   ]},
-  KLIENCI: { cols: [
-    { name: 'IdKlienta', type: 'number(10)', pk: true },
-    { name: 'Nazwa', type: 'varchar2(100)', nn: true },
-    { name: 'Adres', type: 'varchar2(100)' },
-    { name: 'Miasto', type: 'varchar2(50)' },
-    { name: 'Kod', type: 'char(6)' },
-    { name: 'Kraj', type: 'varchar2(50)' }
+  KLIENCI:{cols:[
+    {name:'id_klienta',type:'INTEGER',pk:true},
+    {name:'nazwa',type:'TEXT',nn:true},
+    {name:'adres',type:'TEXT'},
+    {name:'miasto',type:'TEXT'},
+    {name:'kod',type:'TEXT'},
+    {name:'kraj',type:'TEXT'}
   ]},
-  ZAMÓWIENIA: { cols: [
-    { name: 'IDzamowienia', type: 'number(10)', pk: true },
-    { name: 'IDklienta', type: 'number(10)', nn: true, fk: 'KLIENCI.IdKlienta' },
-    { name: 'IdPracownika', type: 'number(10)' },
-    { name: 'DataZamoienia', type: 'date' },
-    { name: 'KodKuriera', type: 'number(2)' }
+  ZAMOWIENIA:{cols:[
+    {name:'id_zamowienia',type:'INTEGER',pk:true},
+    {name:'id_klienta',type:'INTEGER',fk:'KLIENCI.id_klienta'},
+    {name:'id_pracownika',type:'INTEGER'},
+    {name:'data_zamowienia',type:'TEXT'},
+    {name:'kod_kuriera',type:'INTEGER'},
+    {name:'wartosc',type:'FLOAT'}
+  ]},
+  TELEFONY:{cols:[
+    {name:'id',type:'INTEGER',pk:true},
+    {name:'marka',type:'TEXT',nn:true},
+    {name:'model',type:'TEXT',nn:true},
+    {name:'kolor',type:'TEXT'},
+    {name:'cena',type:'FLOAT'},
+    {name:'ekran',type:'FLOAT'},
+    {name:'ram',type:'INTEGER'}
+  ]},
+  HASLA_TESTOWE:{cols:[
+    {name:'id',type:'INTEGER',pk:true},
+    {name:'login',type:'TEXT',nn:true},
+    {name:'haslo',type:'TEXT',nn:true}
+  ]},
+  KIEROWCY:{cols:[
+    {name:'id',type:'INTEGER',pk:true},
+    {name:'first_name',type:'TEXT',nn:true},
+    {name:'family_name',type:'TEXT',nn:true}
+  ]},
+  FILMY_ARCHIWUM:{cols:[
+    {name:'tytul',type:'TEXT'},
+    {name:'gatunek',type:'TEXT'}
   ]}
 };
 
-function normalize(sql) {
-  return sql
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/['"]/g, "'")
-    .replace(/\s*=\s*/g, '=')
-    .replace(/\s*,\s*/g, ',')
-    .replace(/\s*\(\s*/g, '(')
-    .replace(/\s*\)\s*/g, ')')
-    .replace(/;$/, '')
-    .trim();
-}
+// ─── DB INIT SQL ────────────────────────────────────────────────────
+const DB_INIT = `
+PRAGMA foreign_keys = ON;
+CREATE TABLE kraje (id_kraju INTEGER PRIMARY KEY, nazwa_kraju TEXT NOT NULL UNIQUE, stolica TEXT, kod CHAR(3) UNIQUE);
+CREATE TABLE wytwornie (wytwornia_id INTEGER PRIMARY KEY AUTOINCREMENT, nazwa TEXT NOT NULL UNIQUE, kraj INTEGER NOT NULL, rok_zalozenia INTEGER NOT NULL, FOREIGN KEY (kraj) REFERENCES kraje(id_kraju));
+CREATE TABLE filmy (id_filmu INTEGER PRIMARY KEY AUTOINCREMENT, tytul TEXT NOT NULL, gatunek TEXT NOT NULL DEFAULT 'dramat', wytwornia INTEGER NOT NULL, dlugosc_min INTEGER, ocena FLOAT, budzet_mln FLOAT DEFAULT 0, FOREIGN KEY (wytwornia) REFERENCES wytwornie(wytwornia_id));
+CREATE TABLE osoby (id_osoby INTEGER PRIMARY KEY AUTOINCREMENT, imie TEXT NOT NULL, nazwisko TEXT NOT NULL, kraj INTEGER NOT NULL, rok_urodzenia INTEGER, FOREIGN KEY (kraj) REFERENCES kraje(id_kraju));
+CREATE TABLE klienci (id_klienta INTEGER PRIMARY KEY, nazwa TEXT NOT NULL, adres TEXT, miasto TEXT, kod TEXT, kraj TEXT DEFAULT 'Polska');
+CREATE TABLE zamowienia (id_zamowienia INTEGER PRIMARY KEY, id_klienta INTEGER, id_pracownika INTEGER, data_zamowienia TEXT, kod_kuriera INTEGER, wartosc FLOAT);
+CREATE TABLE telefony (id INTEGER PRIMARY KEY AUTOINCREMENT, marka TEXT NOT NULL, model TEXT NOT NULL, kolor TEXT, cena FLOAT, ekran FLOAT, ram INTEGER, UNIQUE(marka, model));
+CREATE TABLE hasla_testowe (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT NOT NULL UNIQUE, haslo TEXT NOT NULL);
+CREATE TABLE kierowcy (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT NOT NULL, family_name TEXT NOT NULL);
+CREATE TABLE filmy_archiwum (tytul TEXT, gatunek TEXT);
+INSERT INTO kraje VALUES (1,'Polska','Warszawa','POL'),(2,'Belgia','Bruksela','BEL'),(3,'Hiszpania','Madryt','ESP'),(4,'Szwecja','Sztokholm','SWE'),(5,'USA','Waszyngton','USA'),(6,'Wielka Brytania','Londyn','GBR'),(7,'Francja','Paryż','FRA'),(8,'Niemcy','Berlin','DEU'),(9,'Włochy','Rzym',NULL);
+INSERT INTO wytwornie VALUES (1,'Brussels Motion',2,1988),(2,'Antwerp Films',2,1972),(3,'Madrid Pictures',3,1995),(4,'Barcelona Studio',3,1968),(5,'Stockholm Screen',4,1954),(6,'Nordic Light',4,1932),(7,'Warsaw Film',1,2001),(8,'Hollywood Prime',5,1923),(9,'London Fog Films',6,1980),(10,'Paris Lumiere',7,1949);
+INSERT INTO filmy (tytul,gatunek,wytwornia,dlugosc_min,ocena,budzet_mln) VALUES ('Cichy Port','dramat',1,110,7.5,12.4),('Brukselska Noc','thriller',1,95,8.1,9.0),('Antwerpski Kod','kryminalny',2,101,6.9,7.5),('Madrycki Sen','dramat',3,125,8.4,15.0),('Słońce Barcelony','komedia',4,99,7.2,5.3),('Północny Wiatr','dramat',5,118,8.7,11.1),('Stare Studio','dokument',6,80,6.5,2.2),('Warszawski Most','dramat',7,104,7.9,6.6),('Gran Torino','dramat',8,116,8.2,33.0),('Ucieczka z Londynu','akcja',9,107,6.8,22.5),('Lumiere 51','dokument',10,90,NULL,3.0),('Zero Budget','eksperyment',7,60,5.5,0);
+INSERT INTO filmy_archiwum VALUES ('Gran Torino','dramat'),('Metropolis','sci-fi'),('Cichy Port','dramat'),('Stare Studio','dokument');
+INSERT INTO osoby (imie,nazwisko,kraj,rok_urodzenia) VALUES ('Carl','Gauss',8,1777),('Richard','Dawkins',6,1941),('Louis','Pasteur',7,1822),('Stanisław','Ulam',1,1909),('Maria','Skłodowska',1,1867),('Anders','Celsius',4,1701),('Pablo','Picasso',3,1881),('Audrey','Hepburn',2,1929),('Ada','Lovelace',6,1815),('Nikola','Tesla',5,1856),('Sofia','Kowalska',1,1999);
+INSERT INTO klienci VALUES (1,'Jan Niezbedny','Staszica 6','Wrocław','11122','Polska'),(2,'Wacław DiPone','Pigalle 8','Paryż','8122','Francja'),(3,'Robert Won','Anielewicza 2','Lubawka','1231','Polska'),(77,'Klient Archiwalny','Nieznana 1','Gdańsk','80000','Polska');
+INSERT INTO zamowienia VALUES (10308,2,7,'2020-09-18',3,299.99),(10309,37,3,'2019-09-19',1,150.00),(10310,77,8,'2020-09-20',2,820.50),(10311,1,7,'2021-01-05',1,45.00),(10312,1,4,'2021-02-10',2,120.00);
+INSERT INTO telefony (marka,model,kolor,cena,ekran,ram) VALUES ('Apple','iPhone 13','black',2999,6.1,4),('Samsung','Galaxy S21','black',2499,6.2,8),('Xiaomi','Redmi Note 11','blue',899,6.4,4),('Nokia','Classic 5','black',299,5.5,2),('Motorola','Moto G','white',799,6.5,4),('Microsoft','Lumia 950','black',699,5.2,3),('OnePlus','Nord','gray',1599,6.4,8),('Sony','Xperia Compact','black',1199,5.0,4),('Xiaomi','Mi 11','black',1999,6.8,8),('Samsung','Galaxy A52','white',1299,6.5,6);
+INSERT INTO hasla_testowe (login,haslo) VALUES ('admin','abc_123'),('student','bezpieczne%haslo'),('tester','normalnehaslo'),('root','root_2026');
+INSERT INTO kierowcy (first_name,family_name) VALUES ('Jan','Kowalski'),('Anna','Nowak'),('Robert','Lewandowski');
+`;
 
-function checkSQL(userSQL, solutions) {
-  const userNorm = normalize(userSQL);
-  return solutions.some(sol => normalize(sol) === userNorm);
-}
-
-function fuzzyCheck(userSQL, solutions) {
-  const u = normalize(userSQL);
-  const keywords = ['select', 'from', 'where', 'join', 'order by', 'group by', 'limit', 'having', 'inner join', 'left join', 'on', 'as'];
-  let score = 0;
-  keywords.forEach(kw => {
-    if (u.includes(kw) && solutions.some(s => normalize(s).includes(kw))) score++;
-  });
-  return score;
-}
-
-const QUESTIONS = [
-  {
-    id: 1,
-    text: 'Wyświetl tytuły filmów wyprodukowanych przez <strong>belgijskie wytwórnie filmowe</strong>. Wyniki posortuj alfabetycznie.',
-    tables: ['FILMY', 'WYTWORNIE', 'KRAJE'],
-    tags: ['join', 'where', 'order'],
-    hint: 'Połącz FILMY z WYTWORNIE po wytwornia_id, a WYTWORNIE z KRAJE po id_kraju. Filtruj gdzie nazwa_kraju = \'Belgia\'.',
-    solutions: [
-      `SELECT Filmy.tytul FROM Filmy INNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id INNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY Filmy.tytul`,
-      `SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia = wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul`,
-      `select filmy.tytul from kraje,filmy,wytwornie where (kraje.nazwa_kraju='Belgia' and filmy.wytwornia=wytwornie.wytwornia_id and wytwornie.kraj=kraje.id_kraju) order by filmy.tytul`,
-      `select FILMY.tytul from KRAJE,FILMY,WYTWORNIE where (KRAJE.nazwa_kraju='Belgia' and FILMY.wytwornia=WYTWORNIE.WYTWORNIA_ID and WYTWORNIE.kraj=KRAJE.id_kraju) order by FILMY.tytul ASC`,
-      `select filmy.tytul from kraje, filmy, wytwornie where (kraje.nazwa_kraju = 'Belgia' and filmy.wytwornia = wytwornie.wytwornia_id and wytwornie.kraj = kraje.id_kraju) order by filmy.tytul asc`
-    ],
-    primarySolution: `SELECT Filmy.tytul
-FROM Filmy
-INNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id
-INNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju
-WHERE kraje.nazwa_kraju='Belgia'
-ORDER BY Filmy.tytul;`
-  },
-  {
-    id: 2,
-    text: 'Wyświetl tytuły filmów wyprodukowanych przez <strong>belgijskie lub hiszpańskie wytwórnie</strong>. Wyniki posortuj alfabetycznie.',
-    tables: ['FILMY', 'WYTWORNIE', 'KRAJE'],
-    tags: ['join', 'where', 'order'],
-    hint: 'Tak samo jak poprzednie, ale w WHERE użyj OR dla dwóch krajów: nazwa_kraju=\'Belgia\' OR nazwa_kraju=\'Hiszpania\'.',
-    solutions: [
-      `SELECT Filmy.tytul FROM Filmy INNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id INNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania' ORDER BY Filmy.tytul`,
-      `select filmy.tytul from kraje,filmy,wytwornie where (wytwornie.kraj=kraje.id_kraju and filmy.wytwornia=wytwornie.wytwornia_id) and (kraje.nazwa_kraju='Hiszpania' or kraje.nazwa_kraju='Belgia') order by filmy.tytul asc`,
-      `SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania' ORDER BY filmy.tytul`
-    ],
-    primarySolution: `SELECT Filmy.tytul
-FROM Filmy
-INNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id
-INNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju
-WHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania'
-ORDER BY Filmy.tytul;`
-  },
-  {
-    id: 3,
-    text: 'Wyświetl <strong>nazwy krajów i stolice</strong> krajów, które posiadają w bazie <strong>kod państwa</strong>. Posortuj <strong>odwrotnie alfabetycznie wg nazw krajów</strong>.',
-    tables: ['KRAJE'],
-    tags: ['where', 'order'],
-    hint: 'Użyj WHERE kod IS NOT NULL. Sortowanie: ORDER BY nazwa_kraju DESC.',
-    solutions: [
-      `SELECT kraje.nazwa_kraju,kraje.stolica FROM kraje WHERE kraje.kod IS NOT NULL ORDER BY kraje.nazwa_kraju DESC`,
-      `SELECT nazwa_kraju,stolica FROM kraje where kod is not null order by nazwa_kraju desc`,
-      `select nazwa_kraju,stolica from kraje where kod is not null order by nazwa_kraju desc`
-    ],
-    primarySolution: `SELECT kraje.nazwa_kraju, kraje.stolica
-FROM kraje
-WHERE kraje.kod IS NOT NULL
-ORDER BY kraje.nazwa_kraju DESC;`
-  },
-  {
-    id: 4,
-    text: 'Wyświetl <strong>nazwy krajów i stolice</strong> krajów posiadających kod państwa. Posortuj <strong>odwrotnie alfabetycznie wg kodów</strong>.',
-    tables: ['KRAJE'],
-    tags: ['where', 'order'],
-    hint: 'Tak samo jak poprzednie, ale ORDER BY kod DESC.',
-    solutions: [
-      `SELECT kraje.nazwa_kraju,kraje.stolica FROM kraje WHERE kraje.kod IS NOT NULL ORDER BY kraje.kod DESC`,
-      `SELECT nazwa_kraju,stolica FROM kraje where kod is not null order by kod desc`,
-      `select nazwa_kraju,stolica from kraje where kod is not null order by kod desc`
-    ],
-    primarySolution: `SELECT kraje.nazwa_kraju, kraje.stolica
-FROM kraje
-WHERE kraje.kod IS NOT NULL
-ORDER BY kraje.kod DESC;`
-  },
-  {
-    id: 5,
-    text: 'Wyświetl nazwy wytwórni z krajów osób o nazwiskach: <strong>Gauss, Dawkins, Pasteur, Ulam</strong>. Kolumna ma mieć nazwę <strong>"Nazwa wytwórni"</strong>. Posortuj alfabetycznie.',
-    tables: ['WYTWORNIE', 'KRAJE', 'OSOBY'],
-    tags: ['join', 'where', 'order'],
-    hint: 'Połącz WYTWORNIE z KRAJE (kraj = id_kraju), potem KRAJE z OSOBY (id_kraju = kraj). Filtruj wg nazwiska, użyj AS dla aliasu kolumny.',
-    solutions: [
-      `SELECT Wytwornie.nazwa AS 'Nazwa wytwórni' FROM Wytwornie INNER JOIN Kraje ON Wytwornie.kraj=Kraje.id_kraju INNER JOIN Osoby ON Kraje.id_kraju=Osoby.kraj WHERE osoby.nazwisko='Gauss' OR osoby.nazwisko='Dawkins' OR osoby.nazwisko='Pasteur' OR osoby.nazwisko='Ulam' ORDER BY Wytwornie.nazwa`,
-      `select wytwornie.nazwa as 'Nazwa wytwórni' from wytwornie inner join kraje on wytwornie.kraj=kraje.id_kraju inner join osoby on kraje.id_kraju=osoby.kraj where osoby.nazwisko='Gauss' or osoby.nazwisko='Dawkins' or osoby.nazwisko='Pasteur' or osoby.nazwisko='Ulam' order by wytwornie.nazwa`
-    ],
-    primarySolution: `SELECT Wytwornie.nazwa AS 'Nazwa wytwórni'
-FROM Wytwornie
-INNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju
-INNER JOIN Osoby ON Kraje.id_kraju = Osoby.kraj
-WHERE osoby.nazwisko='Gauss' OR osoby.nazwisko='Dawkins'
-   OR osoby.nazwisko='Pasteur' OR osoby.nazwisko='Ulam'
-ORDER BY Wytwornie.nazwa;`
-  },
-  {
-    id: 6,
-    text: 'Wyświetl nazwę i rok założenia <strong>najwcześniej założonej szweckiej wytwórni</strong>.',
-    tables: ['WYTWORNIE', 'KRAJE'],
-    tags: ['join', 'where', 'order', 'limit'],
-    hint: 'Połącz WYTWORNIE z KRAJE, filtruj Szwecja, posortuj rok_zalozenia ASC i użyj LIMIT 1.',
-    solutions: [
-      `SELECT Wytwornie.nazwa,Wytwornie.rok_zalozenia FROM Wytwornie INNER JOIN kraje ON Wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Szwecja' ORDER BY Wytwornie.rok_zalozenia LIMIT 1`,
-      `select wytwornie.nazwa,wytwornie.rok_zalozenia from kraje,wytwornie where (wytwornie.kraj=kraje.id_kraju and kraje.nazwa_kraju='Szwecja') order by wytwornie.rok_zalozenia asc limit 1`,
-      `SELECT wytwornie.nazwa,wytwornie.rok_zalozenia FROM wytwornie INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Szwecja' ORDER BY wytwornie.rok_zalozenia ASC LIMIT 1`
-    ],
-    primarySolution: `SELECT Wytwornie.nazwa, Wytwornie.rok_zalozenia
-FROM Wytwornie
-INNER JOIN kraje ON Wytwornie.kraj = kraje.id_kraju
-WHERE kraje.nazwa_kraju='Szwecja'
-ORDER BY Wytwornie.rok_zalozenia ASC
-LIMIT 1;`
-  },
-  {
-    id: 7,
-    text: 'Wyświetl nazwy <strong>wszystkich klientów i numery zamówień, które mogą posiadać</strong> (w tym klientów bez zamówień).',
-    tables: ['KLIENCI', 'ZAMÓWIENIA'],
-    tags: ['left', 'join'],
-    hint: 'Użyj LEFT JOIN — wtedy klienci bez zamówień też się pojawią z NULL w kolumnie IDzamowienia.',
-    solutions: [
-      `SELECT klienci.Nazwa,zamówienia.IDzamowienia FROM klienci LEFT JOIN zamówienia ON zamówienia.IDklienta=klienci.IdKlienta`,
-      `SELECT klienci.Nazwa,Zamówienia.IDzamowienia FROM klienci LEFT JOIN Zamówienia ON Klienci.IdKlienta=Zamówienia.IdKlienta`,
-      `select klienci.Nazwa,zamówienia.IDzamowienia from klienci left join zamówienia on zamówienia.IDklienta=klienci.IdKlienta`
-    ],
-    primarySolution: `SELECT klienci.Nazwa, zamówienia.IDzamowienia
-FROM klienci
-LEFT JOIN zamówienia ON zamówienia.IDklienta = klienci.IdKlienta;`
-  },
-  {
-    id: 8,
-    text: 'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich pochodzących. Posortuj rosnąco wg liczby osób. Kolumny: <strong>"Nazwa kraju"</strong> i <strong>"Liczba osób"</strong>.',
-    tables: ['KRAJE', 'OSOBY'],
-    tags: ['join', 'count', 'group', 'order'],
-    hint: 'Użyj COUNT(osoby.id_osoby), GROUP BY kraje.nazwa_kraju, ORDER BY COUNT(...) ASC.',
-    solutions: [
-      `SELECT kraje.nazwa_kraju AS 'Nazwa kraju',COUNT(osoby.id_osoby) AS 'Liczba osób' FROM kraje INNER JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(osoby.id_osoby)`,
-      `select kraje.nazwa_kraju as 'Nazwa kraju',count(osoby.id_osoby) as 'Liczba osób' from kraje inner join osoby on kraje.id_kraju=osoby.kraj group by kraje.nazwa_kraju order by count(osoby.id_osoby) asc`
-    ],
-    primarySolution: `SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób'
-FROM kraje
-INNER JOIN osoby ON kraje.id_kraju = osoby.kraj
-GROUP BY kraje.nazwa_kraju
-ORDER BY COUNT(osoby.id_osoby);`
-  },
-  {
-    id: 9,
-    text: 'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj <strong>odwrotnie alfabetycznie wg nazw krajów</strong>. Kolumny: <strong>"Nazwa kraju"</strong> i <strong>"Liczba osób"</strong>.',
-    tables: ['KRAJE', 'OSOBY'],
-    tags: ['join', 'count', 'group', 'order'],
-    hint: 'Tak samo jak poprzednie, ale ORDER BY kraje.nazwa_kraju DESC.',
-    solutions: [
-      `SELECT kraje.nazwa_kraju AS 'Nazwa kraju',COUNT(osoby.id_osoby) AS 'Liczba osób' FROM kraje INNER JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY kraje.nazwa_kraju DESC`,
-      `select kraje.nazwa_kraju as 'Nazwa kraju',count(osoby.id_osoby) as 'Liczba osób' from kraje inner join osoby on kraje.id_kraju=osoby.kraj group by kraje.nazwa_kraju order by kraje.nazwa_kraju desc`
-    ],
-    primarySolution: `SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób'
-FROM kraje
-INNER JOIN osoby ON kraje.id_kraju = osoby.kraj
-GROUP BY kraje.nazwa_kraju
-ORDER BY kraje.nazwa_kraju DESC;`
-  },
-  {
-    id: 10,
-    text: 'Jaka instrukcja SQL służy do <strong>nadawania uprawnień</strong> użytkownikom?',
-    tables: [],
-    tags: ['where'],
-    hint: 'Jedna słowo kluczowe — pozwala dać dostęp do obiektów bazy.',
-    solutions: ['GRANT', 'grant'],
-    primarySolution: 'GRANT'
-  },
-  {
-    id: 11,
-    text: 'Jaka instrukcja SQL służy do <strong>wycofania zmian</strong> w transakcji?',
-    tables: [],
-    tags: ['where'],
-    hint: 'Cofa wszystkie operacje do poprzedniego punktu SAVEPOINT lub początku transakcji.',
-    solutions: ['ROLLBACK', 'rollback'],
-    primarySolution: 'ROLLBACK'
-  },
-  {
-    id: 12,
-    text: 'Jaka instrukcja SQL służy do <strong>aktualizacji rekordów</strong> w bazie danych?',
-    tables: [],
-    tags: ['where'],
-    hint: 'Zmienia wartości istniejących wierszy. Zwykle używa się z WHERE.',
-    solutions: ['UPDATE', 'update'],
-    primarySolution: 'UPDATE'
-  },
-  {
-    id: 13,
-    text: 'Jaka instrukcja SQL służy do <strong>zmiany schematu tabeli</strong> (np. dodania kolumny)?',
-    tables: [],
-    tags: ['where'],
-    hint: 'Dwa słowa. Zmienia definicję już istniejącej tabeli.',
-    solutions: ['ALTER TABLE', 'alter table'],
-    primarySolution: 'ALTER TABLE'
-  }
+// ─── QUESTIONS ──────────────────────────────────────────────────────
+// SET 1: original kolokwium questions (text-compare mode)
+const SET1 = [
+  {id:'1a',set:1,mode:'text',
+   text:'Wyświetl tytuły filmów z <strong>belgijskich wytwórni</strong>. Posortuj alfabetycznie.',
+   tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],
+   hint:"INNER JOIN WYTWORNIE i KRAJE, WHERE nazwa_kraju='Belgia', ORDER BY tytul.",
+   solutions:[
+     "select filmy.tytul from filmy inner join wytwornie on filmy.wytwornia=wytwornie.wytwornia_id inner join kraje on wytwornie.kraj=kraje.id_kraju where kraje.nazwa_kraju='belgia' order by filmy.tytul",
+     "select filmy.tytul from kraje,filmy,wytwornie where (kraje.nazwa_kraju='belgia' and filmy.wytwornia=wytwornie.wytwornia_id and wytwornie.kraj=kraje.id_kraju) order by filmy.tytul",
+     "select filmy.tytul from kraje,filmy,wytwornie where (kraje.nazwa_kraju='belgia' and filmy.wytwornia=wytwornie.wytwornia_id and wytwornie.kraj=kraje.id_kraju) order by filmy.tytul asc"
+   ],
+   primarySolution:`SELECT Filmy.tytul\nFROM Filmy\nINNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id\nINNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju\nWHERE kraje.nazwa_kraju='Belgia'\nORDER BY Filmy.tytul;`},
+  {id:'2a',set:1,mode:'text',
+   text:'Wyświetl tytuły filmów z <strong>belgijskich lub hiszpańskich wytwórni</strong>. Posortuj alfabetycznie.',
+   tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],
+   hint:"Tak samo jak poprzednie, ale WHERE ... OR nazwa_kraju='Hiszpania'.",
+   solutions:[
+     "select filmy.tytul from filmy inner join wytwornie on filmy.wytwornia=wytwornie.wytwornia_id inner join kraje on wytwornie.kraj=kraje.id_kraju where kraje.nazwa_kraju='belgia' or kraje.nazwa_kraju='hiszpania' order by filmy.tytul",
+     "select filmy.tytul from kraje,filmy,wytwornie where (wytwornie.kraj=kraje.id_kraju and filmy.wytwornia=wytwornie.wytwornia_id) and (kraje.nazwa_kraju='hiszpania' or kraje.nazwa_kraju='belgia') order by filmy.tytul asc"
+   ],
+   primarySolution:`SELECT Filmy.tytul\nFROM Filmy INNER JOIN Wytwornie ON Filmy.wytwornia = Wytwornie.wytwornia_id\nINNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju\nWHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania'\nORDER BY Filmy.tytul;`},
+  {id:'3a',set:1,mode:'text',
+   text:'Wyświetl <strong>nazwy krajów i stolice</strong> krajów z kodem państwa. Posortuj <strong>odwrotnie alfabetycznie</strong> wg nazw.',
+   tables:['KRAJE'],tags:['where','order'],
+   hint:'WHERE kod IS NOT NULL, ORDER BY nazwa_kraju DESC.',
+   solutions:[
+     "select kraje.nazwa_kraju,kraje.stolica from kraje where kraje.kod is not null order by kraje.nazwa_kraju desc",
+     "select nazwa_kraju,stolica from kraje where kod is not null order by nazwa_kraju desc"
+   ],
+   primarySolution:`SELECT kraje.nazwa_kraju, kraje.stolica\nFROM kraje\nWHERE kraje.kod IS NOT NULL\nORDER BY kraje.nazwa_kraju DESC;`},
+  {id:'4a',set:1,mode:'text',
+   text:'Wyświetl <strong>nazwy krajów i stolice</strong> krajów z kodem państwa. Posortuj <strong>odwrotnie wg kodów</strong>.',
+   tables:['KRAJE'],tags:['where','order'],
+   hint:'WHERE kod IS NOT NULL, ORDER BY kod DESC.',
+   solutions:[
+     "select kraje.nazwa_kraju,kraje.stolica from kraje where kraje.kod is not null order by kraje.kod desc",
+     "select nazwa_kraju,stolica from kraje where kod is not null order by kod desc"
+   ],
+   primarySolution:`SELECT kraje.nazwa_kraju, kraje.stolica\nFROM kraje\nWHERE kraje.kod IS NOT NULL\nORDER BY kraje.kod DESC;`},
+  {id:'5a',set:1,mode:'text',
+   text:'Wyświetl nazwy wytwórni z krajów osób o nazwiskach <strong>Gauss, Dawkins, Pasteur, Ulam</strong>. Kolumna: <strong>"Nazwa wytwórni"</strong>. Sortuj alfabetycznie.',
+   tables:['WYTWORNIE','KRAJE','OSOBY'],tags:['join','where','order'],
+   hint:"JOIN WYTWORNIE→KRAJE→OSOBY. WHERE nazwisko IN (...). AS 'Nazwa wytwórni'.",
+   solutions:[
+     "select wytwornie.nazwa as 'nazwa wytwórni' from wytwornie inner join kraje on wytwornie.kraj=kraje.id_kraju inner join osoby on kraje.id_kraju=osoby.kraj where osoby.nazwisko='gauss' or osoby.nazwisko='dawkins' or osoby.nazwisko='pasteur' or osoby.nazwisko='ulam' order by wytwornie.nazwa",
+     "select distinct wytwornie.nazwa as 'nazwa wytwórni' from wytwornie inner join kraje on wytwornie.kraj=kraje.id_kraju inner join osoby on kraje.id_kraju=osoby.kraj where osoby.nazwisko in ('gauss','dawkins','pasteur','ulam') order by wytwornie.nazwa"
+   ],
+   primarySolution:`SELECT Wytwornie.nazwa AS 'Nazwa wytwórni'\nFROM Wytwornie\nINNER JOIN Kraje ON Wytwornie.kraj = Kraje.id_kraju\nINNER JOIN Osoby ON Kraje.id_kraju = Osoby.kraj\nWHERE osoby.nazwisko='Gauss' OR osoby.nazwisko='Dawkins'\n   OR osoby.nazwisko='Pasteur' OR osoby.nazwisko='Ulam'\nORDER BY Wytwornie.nazwa;`},
+  {id:'6a',set:1,mode:'text',
+   text:'Wyświetl nazwę i rok założenia <strong>najwcześniej założonej szwedzkiej wytwórni</strong>.',
+   tables:['WYTWORNIE','KRAJE'],tags:['join','where','order','limit'],
+   hint:"JOIN KRAJE, WHERE nazwa_kraju='Szwecja', ORDER BY rok_zalozenia ASC, LIMIT 1.",
+   solutions:[
+     "select wytwornie.nazwa,wytwornie.rok_zalozenia from wytwornie inner join kraje on wytwornie.kraj=kraje.id_kraju where kraje.nazwa_kraju='szwecja' order by wytwornie.rok_zalozenia asc limit 1",
+     "select wytwornie.nazwa,wytwornie.rok_zalozenia from wytwornie inner join kraje on wytwornie.kraj=kraje.id_kraju where kraje.nazwa_kraju='szwecja' order by wytwornie.rok_zalozenia limit 1",
+     "select wytwornie.nazwa,wytwornie.rok_zalozenia from kraje,wytwornie where (wytwornie.kraj=kraje.id_kraju and kraje.nazwa_kraju='szwecja') order by wytwornie.rok_zalozenia asc limit 1"
+   ],
+   primarySolution:`SELECT Wytwornie.nazwa, Wytwornie.rok_zalozenia\nFROM Wytwornie\nINNER JOIN kraje ON Wytwornie.kraj = kraje.id_kraju\nWHERE kraje.nazwa_kraju='Szwecja'\nORDER BY Wytwornie.rok_zalozenia ASC\nLIMIT 1;`},
+  {id:'7a',set:1,mode:'text',
+   text:'Wyświetl nazwy <strong>wszystkich klientów i numery zamówień</strong> — łącznie z klientami bez zamówień.',
+   tables:['KLIENCI','ZAMOWIENIA'],tags:['left'],
+   hint:'LEFT JOIN zamowienia ON zamowienia.id_klienta = klienci.id_klienta.',
+   solutions:[
+     "select klienci.nazwa,zamowienia.id_zamowienia from klienci left join zamowienia on zamowienia.id_klienta=klienci.id_klienta",
+     "select klienci.nazwa,zamowienia.id_zamowienia from klienci left join zamowienia on klienci.id_klienta=zamowienia.id_klienta"
+   ],
+   primarySolution:`SELECT klienci.nazwa, zamowienia.id_zamowienia\nFROM klienci\nLEFT JOIN zamowienia ON zamowienia.id_klienta = klienci.id_klienta;`},
+  {id:'8a',set:1,mode:'text',
+   text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj rosnąco wg liczby. Kolumny: <strong>"Nazwa kraju"</strong> i <strong>"Liczba osób"</strong>.',
+   tables:['KRAJE','OSOBY'],tags:['join','agg','group','order'],
+   hint:"COUNT(osoby.id_osoby), GROUP BY nazwa_kraju, ORDER BY COUNT(...).",
+   solutions:[
+     "select kraje.nazwa_kraju as 'nazwa kraju',count(osoby.id_osoby) as 'liczba osób' from kraje inner join osoby on kraje.id_kraju=osoby.kraj group by kraje.nazwa_kraju order by count(osoby.id_osoby)",
+     "select kraje.nazwa_kraju as 'nazwa kraju',count(osoby.id_osoby) as 'liczba osób' from kraje inner join osoby on kraje.id_kraju=osoby.kraj group by kraje.nazwa_kraju order by count(osoby.id_osoby) asc"
+   ],
+   primarySolution:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób'\nFROM kraje\nINNER JOIN osoby ON kraje.id_kraju = osoby.kraj\nGROUP BY kraje.nazwa_kraju\nORDER BY COUNT(osoby.id_osoby);`},
+  {id:'9a',set:1,mode:'text',
+   text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj <strong>odwrotnie alfabetycznie</strong> wg nazw krajów. Kolumny: <strong>"Nazwa kraju"</strong> i <strong>"Liczba osób"</strong>.',
+   tables:['KRAJE','OSOBY'],tags:['join','agg','group','order'],
+   hint:'Tak samo jak poprzednie, ale ORDER BY kraje.nazwa_kraju DESC.',
+   solutions:[
+     "select kraje.nazwa_kraju as 'nazwa kraju',count(osoby.id_osoby) as 'liczba osób' from kraje inner join osoby on kraje.id_kraju=osoby.kraj group by kraje.nazwa_kraju order by kraje.nazwa_kraju desc"
+   ],
+   primarySolution:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób'\nFROM kraje INNER JOIN osoby ON kraje.id_kraju = osoby.kraj\nGROUP BY kraje.nazwa_kraju\nORDER BY kraje.nazwa_kraju DESC;`},
+  {id:'10a',set:1,mode:'text',
+   text:'Jaka instrukcja SQL służy do <strong>nadawania uprawnień</strong>?',
+   tables:[],tags:[],
+   hint:'Pozwala nadać dostęp do obiektów bazy.',
+   solutions:['grant'],primarySolution:'GRANT'},
+  {id:'11a',set:1,mode:'text',
+   text:'Jaka instrukcja SQL służy do <strong>wycofania zmian</strong> w transakcji?',
+   tables:[],tags:[],
+   hint:'Cofa wszystkie operacje do początku transakcji lub SAVEPOINT.',
+   solutions:['rollback'],primarySolution:'ROLLBACK'},
+  {id:'12a',set:1,mode:'text',
+   text:'Jaka instrukcja SQL służy do <strong>aktualizacji rekordów</strong>?',
+   tables:[],tags:[],
+   hint:'Zmienia wartości istniejących wierszy.',
+   solutions:['update'],primarySolution:'UPDATE'},
+  {id:'13a',set:1,mode:'text',
+   text:'Jaka instrukcja SQL służy do <strong>zmiany schematu tabeli</strong>?',
+   tables:[],tags:[],
+   hint:'Dwa słowa. Modyfikuje definicję istniejącej tabeli.',
+   solutions:['alter table'],primarySolution:'ALTER TABLE'}
 ];
 
-let state = {
-  current: 0,
-  answered: {},
-  showSchema: false,
-  showHint: false,
-  userInput: '',
-  done: false
-};
+// SET 2: executed against real SQLite
+const SET2 = [
+  {id:'s2_1',set:2,mode:'exec',
+   text:'Wyświetl <strong>tytuły i oceny</strong> wszystkich filmów, od najwyższej do najniższej. Filmy bez oceny na końcu.',
+   tables:['FILMY'],tags:['order'],
+   hint:'ORDER BY ocena DESC — NULL-e w SQLite są na końcu przy DESC automatycznie.',
+   answer:`SELECT tytul, ocena FROM filmy ORDER BY ocena DESC`,
+   primarySolution:`SELECT tytul, ocena FROM filmy ORDER BY ocena DESC;`},
+  {id:'s2_2',set:2,mode:'exec',
+   text:'Wyświetl <strong>unikalne gatunki filmów</strong>, posortowane alfabetycznie.',
+   tables:['FILMY'],tags:['order'],
+   hint:'Użyj DISTINCT.',
+   answer:`SELECT DISTINCT gatunek FROM filmy ORDER BY gatunek`,
+   primarySolution:`SELECT DISTINCT gatunek FROM filmy ORDER BY gatunek;`},
+  {id:'s2_3',set:2,mode:'exec',
+   text:'Wyświetl <strong>czarne telefony</strong> w cenie <strong>500–2500 zł</strong>. Pokaż markę, model, kolor i cenę. Posortuj po cenie.',
+   tables:['TELEFONY'],tags:['where'],
+   hint:"WHERE kolor='black' AND cena BETWEEN 500 AND 2500, ORDER BY cena.",
+   answer:`SELECT marka, model, kolor, cena FROM telefony WHERE kolor = 'black' AND cena BETWEEN 500 AND 2500 ORDER BY cena`,
+   primarySolution:`SELECT marka, model, kolor, cena\nFROM telefony\nWHERE kolor = 'black' AND cena BETWEEN 500 AND 2500\nORDER BY cena;`},
+  {id:'s2_4',set:2,mode:'exec',
+   text:'Wyświetl telefony, których marka <strong>nie należy</strong> do Apple, Samsung i Microsoft. Pokaż markę, model, cenę.',
+   tables:['TELEFONY'],tags:['where'],
+   hint:"NOT IN ('Apple','Samsung','Microsoft'), ORDER BY marka, model.",
+   answer:`SELECT marka, model, cena FROM telefony WHERE marka NOT IN ('Apple','Samsung','Microsoft') ORDER BY marka, model`,
+   primarySolution:`SELECT marka, model, cena\nFROM telefony\nWHERE marka NOT IN ('Apple','Samsung','Microsoft')\nORDER BY marka, model;`},
+  {id:'s2_5',set:2,mode:'exec',
+   text:'Wyświetl filmy, których tytuł <strong>zaczyna się od litery „S"</strong>.',
+   tables:['FILMY'],tags:['where'],
+   hint:"LIKE 'S%'",
+   answer:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul`,
+   primarySolution:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul;`},
+  {id:'s2_6',set:2,mode:'exec',
+   text:'Wyświetl loginy i hasła kont, których hasło zawiera <strong>dosłowny znak podkreślenia</strong> `_`.',
+   tables:['HASLA_TESTOWE'],tags:['where'],
+   hint:"LIKE '%!_%' ESCAPE '!' — znak ! jako escape pozwala traktować _ dosłownie.",
+   answer:`SELECT login, haslo FROM hasla_testowe WHERE haslo LIKE '%!_%' ESCAPE '!' ORDER BY login`,
+   primarySolution:`SELECT login, haslo\nFROM hasla_testowe\nWHERE haslo LIKE '%!_%' ESCAPE '!'\nORDER BY login;`},
+  {id:'s2_7',set:2,mode:'exec',
+   text:'Policz <strong>liczbę filmów, średnią ocenę</strong> (zaokrągloną do 2 miejsc) i <strong>sumę budżetów</strong>. Kolumny: <code>liczba_filmow</code>, <code>srednia_ocena</code>, <code>suma_budzetow</code>.',
+   tables:['FILMY'],tags:['agg'],
+   hint:'COUNT(*), ROUND(AVG(ocena),2), SUM(budzet_mln) z aliasami AS.',
+   answer:`SELECT COUNT(*) AS liczba_filmow, ROUND(AVG(ocena), 2) AS srednia_ocena, SUM(budzet_mln) AS suma_budzetow FROM filmy`,
+   primarySolution:`SELECT COUNT(*) AS liczba_filmow,\n  ROUND(AVG(ocena), 2) AS srednia_ocena,\n  SUM(budzet_mln) AS suma_budzetow\nFROM filmy;`},
+  {id:'s2_8',set:2,mode:'exec',
+   text:'Wyświetl <strong>gatunki z co najmniej 2 filmami</strong>. Pokaż gatunek i liczbę filmów. Sortuj malejąco po liczbie, potem alfabetycznie.',
+   tables:['FILMY'],tags:['group','agg'],
+   hint:'GROUP BY gatunek HAVING COUNT(*) >= 2, ORDER BY liczba DESC, gatunek.',
+   answer:`SELECT gatunek, COUNT(*) AS liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY liczba DESC, gatunek`,
+   primarySolution:`SELECT gatunek, COUNT(*) AS liczba\nFROM filmy\nGROUP BY gatunek\nHAVING COUNT(*) >= 2\nORDER BY liczba DESC, gatunek;`},
+  {id:'s2_9',set:2,mode:'exec',
+   text:'Wyświetl <strong>pełne imię i nazwisko</strong> każdego kierowcy w jednej kolumnie o nazwie <code>Kierowca</code>. Sortuj po nazwisku.',
+   tables:['KIEROWCY'],tags:['text'],
+   hint:"Konkatenacja: first_name || ' ' || family_name AS Kierowca.",
+   answer:`SELECT first_name || ' ' || family_name AS Kierowca FROM kierowcy ORDER BY family_name`,
+   primarySolution:`SELECT first_name || ' ' || family_name AS Kierowca\nFROM kierowcy\nORDER BY family_name;`},
+  {id:'s2_10',set:2,mode:'exec',
+   text:'Wyświetl tytuły filmów z <strong>belgijskich lub hiszpańskich wytwórni</strong>, alfabetycznie.',
+   tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],
+   hint:"JOIN, WHERE nazwa_kraju IN ('Belgia','Hiszpania'), ORDER BY tytul.",
+   answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia = wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul`,
+   primarySolution:`SELECT filmy.tytul\nFROM filmy\nINNER JOIN wytwornie ON filmy.wytwornia = wytwornie.wytwornia_id\nINNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju\nWHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania')\nORDER BY filmy.tytul;`},
+  {id:'s2_11',set:2,mode:'exec',
+   text:'Wyświetl nazwy wytwórni z krajów osób o nazwiskach <strong>Gauss, Dawkins, Pasteur, Ulam</strong>. Kolumna: <code>Nazwa wytwórni</code>. Bez duplikatów, alfabetycznie.',
+   tables:['WYTWORNIE','KRAJE','OSOBY'],tags:['join','where','order'],
+   hint:"DISTINCT, IN ('Gauss','Dawkins','Pasteur','Ulam'), AS 'Nazwa wytwórni'.",
+   answer:`SELECT DISTINCT wytwornie.nazwa AS 'Nazwa wytwórni' FROM wytwornie INNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju INNER JOIN osoby ON kraje.id_kraju = osoby.kraj WHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam') ORDER BY wytwornie.nazwa`,
+   primarySolution:`SELECT DISTINCT wytwornie.nazwa AS 'Nazwa wytwórni'\nFROM wytwornie\nINNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju\nINNER JOIN osoby ON kraje.id_kraju = osoby.kraj\nWHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam')\nORDER BY wytwornie.nazwa;`},
+  {id:'s2_12',set:2,mode:'exec',
+   text:'Wyświetl nazwę i rok założenia <strong>najwcześniej założonej szwedzkiej wytwórni</strong>.',
+   tables:['WYTWORNIE','KRAJE'],tags:['join','where','order','limit'],
+   hint:"JOIN KRAJE, WHERE nazwa_kraju='Szwecja', ORDER BY rok_zalozenia ASC, LIMIT 1.",
+   answer:`SELECT wytwornie.nazwa, wytwornie.rok_zalozenia FROM wytwornie INNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju WHERE kraje.nazwa_kraju = 'Szwecja' ORDER BY wytwornie.rok_zalozenia ASC LIMIT 1`,
+   primarySolution:`SELECT wytwornie.nazwa, wytwornie.rok_zalozenia\nFROM wytwornie\nINNER JOIN kraje ON wytwornie.kraj = kraje.id_kraju\nWHERE kraje.nazwa_kraju = 'Szwecja'\nORDER BY wytwornie.rok_zalozenia ASC\nLIMIT 1;`},
+  {id:'s2_13',set:2,mode:'exec',
+   text:'Wyświetl nazwy <strong>wszystkich klientów i numery zamówień</strong> (klienci bez zamówień też). Sortuj po id_klienta i id_zamowienia.',
+   tables:['KLIENCI','ZAMOWIENIA'],tags:['left'],
+   hint:'LEFT JOIN zamowienia ON zamowienia.id_klienta = klienci.id_klienta, ORDER BY klienci.id_klienta, zamowienia.id_zamowienia.',
+   answer:`SELECT klienci.nazwa, zamowienia.id_zamowienia FROM klienci LEFT JOIN zamowienia ON zamowienia.id_klienta = klienci.id_klienta ORDER BY klienci.id_klienta, zamowienia.id_zamowienia`,
+   primarySolution:`SELECT klienci.nazwa, zamowienia.id_zamowienia\nFROM klienci\nLEFT JOIN zamowienia ON zamowienia.id_klienta = klienci.id_klienta\nORDER BY klienci.id_klienta, zamowienia.id_zamowienia;`},
+  {id:'s2_14',set:2,mode:'exec',
+   text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj rosnąco po liczbie osób. Kolumny: <code>Nazwa kraju</code>, <code>Liczba osób</code>.',
+   tables:['KRAJE','OSOBY'],tags:['join','agg','group','order'],
+   hint:"COUNT(osoby.id_osoby) AS 'Liczba osób', GROUP BY, ORDER BY COUNT(...), nazwa_kraju.",
+   answer:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób' FROM kraje INNER JOIN osoby ON kraje.id_kraju = osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(osoby.id_osoby), kraje.nazwa_kraju`,
+   primarySolution:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób'\nFROM kraje\nINNER JOIN osoby ON kraje.id_kraju = osoby.kraj\nGROUP BY kraje.nazwa_kraju\nORDER BY COUNT(osoby.id_osoby), kraje.nazwa_kraju;`},
+  {id:'s2_15',set:2,mode:'exec',
+   text:'Wyświetl kraje z <strong>kodem państwa</strong>. Pokaż nazwę i stolicę. Posortuj malejąco po nazwie.',
+   tables:['KRAJE'],tags:['where','order'],
+   hint:'WHERE kod IS NOT NULL, ORDER BY nazwa_kraju DESC.',
+   answer:`SELECT nazwa_kraju, stolica FROM kraje WHERE kod IS NOT NULL ORDER BY nazwa_kraju DESC`,
+   primarySolution:`SELECT nazwa_kraju, stolica\nFROM kraje\nWHERE kod IS NOT NULL\nORDER BY nazwa_kraju DESC;`},
+  {id:'s2_16',set:2,mode:'exec',
+   text:'Dla każdego filmu pokaż tytuł <strong>dużymi literami</strong> i <strong>trzy pierwsze znaki</strong> tytułu. Kolumny: <code>tytul_duzymi</code>, <code>prefix</code>. Sortuj po tytule.',
+   tables:['FILMY'],tags:['text'],
+   hint:'UPPER(tytul) AS tytul_duzymi, SUBSTR(tytul,1,3) AS prefix.',
+   answer:`SELECT UPPER(tytul) AS tytul_duzymi, SUBSTR(tytul, 1, 3) AS prefix FROM filmy ORDER BY tytul`,
+   primarySolution:`SELECT UPPER(tytul) AS tytul_duzymi, SUBSTR(tytul, 1, 3) AS prefix\nFROM filmy\nORDER BY tytul;`},
+  {id:'s2_17',set:2,mode:'exec',
+   text:'Wyświetl tytuł, ocenę i opis: <strong>"bardzo dobry"</strong> dla oceny ≥ 8, <strong>"dobry"</strong> dla ≥ 7, <strong>"słabszy/brak"</strong> dla reszty. Kolumna: <code>opis</code>. Sortuj po ocenie malejąco.',
+   tables:['FILMY'],tags:['case'],
+   hint:"CASE WHEN ocena >= 8 THEN 'bardzo dobry' WHEN ocena >= 7 THEN 'dobry' ELSE 'słabszy/brak' END AS opis.",
+   answer:`SELECT tytul, ocena, CASE WHEN ocena >= 8 THEN 'bardzo dobry' WHEN ocena >= 7 THEN 'dobry' ELSE 'słabszy/brak' END AS opis FROM filmy ORDER BY ocena DESC`,
+   primarySolution:`SELECT tytul, ocena,\n  CASE\n    WHEN ocena >= 8 THEN 'bardzo dobry'\n    WHEN ocena >= 7 THEN 'dobry'\n    ELSE 'słabszy/brak'\n  END AS opis\nFROM filmy\nORDER BY ocena DESC;`},
+  {id:'s2_18',set:2,mode:'exec',
+   text:'Wyświetl tytuł i ocenę tekstową. Jeśli ocena to NULL, pokaż <strong>"brak oceny"</strong>. Kolumna: <code>ocena_tekstowa</code>. Sortuj po tytule.',
+   tables:['FILMY'],tags:['text'],
+   hint:"COALESCE(CAST(ocena AS TEXT), 'brak oceny') AS ocena_tekstowa.",
+   answer:`SELECT tytul, COALESCE(CAST(ocena AS TEXT), 'brak oceny') AS ocena_tekstowa FROM filmy ORDER BY tytul`,
+   primarySolution:`SELECT tytul, COALESCE(CAST(ocena AS TEXT), 'brak oceny') AS ocena_tekstowa\nFROM filmy\nORDER BY tytul;`},
+  {id:'s2_19',set:2,mode:'exec',
+   text:'Wyświetl tytuły filmów, które są <strong>jednocześnie w tabeli filmy i filmy_archiwum</strong>. Sortuj alfabetycznie.',
+   tables:['FILMY','FILMY_ARCHIWUM'],tags:['set'],
+   hint:'INTERSECT — zwraca część wspólną dwóch SELECT-ów.',
+   answer:`SELECT tytul FROM filmy INTERSECT SELECT tytul FROM filmy_archiwum ORDER BY tytul`,
+   primarySolution:`SELECT tytul FROM filmy\nINTERSECT\nSELECT tytul FROM filmy_archiwum\nORDER BY tytul;`},
+  {id:'s2_20',set:2,mode:'text',
+   text:'Jak wycofać zmiany w transakcji? Podaj instrukcję SQL, która <strong>cofa wszystkie zmiany</strong> od BEGIN TRANSACTION.',
+   tables:[],tags:['trans'],
+   hint:'Jedno słowo — anuluje wszystkie zmiany w bieżącej transakcji.',
+   solutions:['rollback'],primarySolution:'ROLLBACK'}
+];
 
-function renderSchema(tableNames) {
-  if (!tableNames.length) return '';
-  return tableNames.map(name => {
-    const t = TABLES[name];
-    if (!t) return '';
-    const cols = t.cols.map(c => `
-      <div class="schema-col">
-        <span class="col-name">${c.name}</span>
-        <span style="color:var(--text3)"> · ${c.type}</span>
-        ${c.pk ? '<span class="col-pk">PK</span>' : ''}
-        ${c.fk ? `<span class="col-fk">FK→${c.fk}</span>` : ''}
-      </div>`).join('');
-    return `<div class="schema-table">
-      <div class="schema-table-name">${name}</div>
-      ${cols}
-    </div>`;
+const ALL_QUESTIONS = [...SET1, ...SET2];
+
+// ─── STATE ──────────────────────────────────────────────────────────
+let db = null;
+let currentSet = 1;
+let state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, userInput:'', done:false };
+
+function getQuestions(){ return ALL_QUESTIONS.filter(q=>q.set===currentSet); }
+
+// ─── DB UTILS ───────────────────────────────────────────────────────
+function runQuery(sql){
+  try{
+    const results = db.exec(sql);
+    if(!results.length) return {ok:true,rows:[],cols:[]};
+    const {columns,values} = results[0];
+    return {ok:true,cols:columns,rows:values};
+  }catch(e){
+    return {ok:false,error:e.message};
+  }
+}
+
+function resultToKey(r){ return JSON.stringify({cols:r.cols.map(c=>c.toLowerCase()),rows:r.rows.map(row=>row.map(v=>v===null?null:String(v)))}); }
+
+function compareResults(userSQL, answerSQL){
+  const expected = runQuery(answerSQL);
+  if(!expected.ok) return {ok:false,error:'Błąd wzorcowego zapytania: '+expected.error};
+  const actual = runQuery(userSQL);
+  if(!actual.ok) return {ok:false,error:actual.error};
+  if(resultToKey(actual)===resultToKey(expected)) return {ok:true,actual,expected};
+  return {ok:false,actual,expected,mismatch:true};
+}
+
+// ─── TEXT COMPARE ───────────────────────────────────────────────────
+function normText(s){ return s.replace(/\s+/g,' ').trim().toLowerCase().replace(/['"]/g,"'").replace(/\s*=\s*/g,'=').replace(/\s*,\s*/g,',').replace(/\s*\(\s*/g,'(').replace(/\s*\)\s*/g,')').replace(/;$/,'').trim(); }
+function checkText(user, solutions){ return solutions.some(s=>normText(s)===normText(user)); }
+
+// ─── RENDER HELPERS ─────────────────────────────────────────────────
+function schemaHTML(names){
+  if(!names.length) return '';
+  return names.map(n=>{
+    const t=SCHEMA_DEFS[n.toUpperCase()]; if(!t) return '';
+    return `<div><div class="s-tbl-name">${n}</div>${t.cols.map(c=>`<div class="s-col"><span class="cn">${c.name}</span><span style="color:var(--text3)"> · ${c.type}</span>${c.pk?'<span class="pk">PK</span>':''}${c.fk?`<span class="fk">FK→${c.fk}</span>`:''}</div>`).join('')}</div>`;
   }).join('');
 }
 
-function renderTagBadge(tag) {
-  const map = {
-    join: ['tag-join', 'INNER JOIN'],
-    where: ['tag-where', 'WHERE'],
-    order: ['tag-order', 'ORDER BY'],
-    group: ['tag-group', 'GROUP BY'],
-    limit: ['tag-limit', 'LIMIT'],
-    left: ['tag-left', 'LEFT JOIN'],
-    count: ['tag-count', 'COUNT'],
-  };
-  const [cls, label] = map[tag] || ['tag-where', tag.toUpperCase()];
-  return `<span class="tag ${cls}">${label}</span>`;
+function tableHTML(cols,rows,cls=''){
+  if(!cols||!cols.length) return '<em style="color:var(--text3);font-size:.75rem">Brak wyników</em>';
+  const header=cols.map(c=>`<th>${c}</th>`).join('');
+  const body=rows.map(r=>`<tr>${r.map(v=>`<td>${v===null?'<span class="null-val">NULL</span>':v}</td>`).join('')}</tr>`).join('');
+  return `<div class="result-scroll"><table class="result-table ${cls}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function render() {
-  const root = document.getElementById('root');
-  if (state.done) {
-    const correct = Object.values(state.answered).filter(a => a.correct).length;
-    const total = QUESTIONS.length;
-    const pct = Math.round(correct / total * 100);
-    root.innerHTML = `
-      <div class="summary">
-        <h2>Gotowe! 🎉</h2>
-        <span class="score">${correct}/${total}</span>
-        <p>${pct}% poprawnych odpowiedzi</p>
-        <p style="margin-bottom:1.5rem;color:var(--text2);">${pct >= 80 ? 'Świetny wynik! Jesteś gotowy na kolokwium.' : pct >= 60 ? 'Nieźle! Poćwicz jeszcze trochę.' : 'Wróć do notatek i spróbuj ponownie.'}</p>
-        <button class="btn btn-primary" onclick="restartQuiz()">Zacznij od nowa</button>
-      </div>`;
+const TAG_MAP={join:'t-join',where:'t-where',order:'t-order',group:'t-group',agg:'t-agg',limit:'t-limit',left:'t-left',text:'t-text',case:'t-case',set:'t-set',trans:'t-trans'};
+const TAG_LABEL={join:'INNER JOIN',where:'WHERE',order:'ORDER BY',group:'GROUP BY',agg:'AGG',limit:'LIMIT',left:'LEFT JOIN',text:'FUNC',case:'CASE',set:'INTERSECT',trans:'TRANSACTION'};
+function tagsHTML(tags){ return tags.map(t=>`<span class="tag ${TAG_MAP[t]||'t-where'}">${TAG_LABEL[t]||t.toUpperCase()}</span>`).join(''); }
+
+// ─── MAIN RENDER ────────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById('root');
+  const qs=getQuestions();
+  if(state.done){
+    const correct=Object.values(state.answered).filter(a=>a.correct).length;
+    const pct=Math.round(correct/qs.length*100);
+    root.innerHTML=`<div class="summary">
+      <h2>Gotowe! 🎉</h2>
+      <span class="score-big">${correct}/${qs.length}</span>
+      <p class="summary-msg">${pct}% poprawnych odpowiedzi</p>
+      <p class="summary-detail">${pct>=80?'Świetny wynik! Jesteś gotowy na kolokwium.':pct>=60?'Nieźle! Poćwicz jeszcze trochę.':'Wróć do materiałów i spróbuj ponownie.'}</p>
+      <button class="btn-restart" onclick="restart()">Zacznij od nowa</button>
+    </div>`;
     return;
   }
+  const q=qs[state.current];
+  const ans=state.answered[q.id];
+  const progress=(state.current/qs.length)*100;
+  const correct=Object.values(state.answered).filter(a=>a.correct).length;
+  const wrong=Object.values(state.answered).filter(a=>!a.correct).length;
 
-  const q = QUESTIONS[state.current];
-  const ans = state.answered[q.id];
-  const progress = (state.current / QUESTIONS.length) * 100;
-  const correct = Object.values(state.answered).filter(a => a.correct).length;
-  const wrong = Object.values(state.answered).filter(a => !a.correct).length;
+  // dots
+  const dots=qs.map((qq,i)=>{
+    const a=state.answered[qq.id];
+    const cls=a?(a.correct?'done-ok':'done-fail'):(i===state.current?'current':'');
+    return `<div class="dot ${cls}" onclick="jumpTo(${i})" title="Pytanie ${i+1}"></div>`;
+  }).join('');
 
-  let feedbackHTML = '';
-  if (ans) {
-    if (ans.correct) {
-      feedbackHTML = `<div class="feedback correct"><span class="label">✓ Poprawnie!</span></div>`;
+  // schema
+  const schemaSection=q.tables.length?`
+    <button class="schema-btn" onclick="toggle('showSchema')">${state.showSchema?'▲ Ukryj schemat':'▼ Schemat tabel'}</button>
+    ${state.showSchema?`<div class="schema"><div class="schema-grid">${schemaHTML(q.tables)}</div></div>`:''}
+  `:'';
+
+  // expected (set 2 only)
+  let expectedSection='';
+  if(q.mode==='exec' && db){
+    const expRes=runQuery(q.answer);
+    expectedSection=`
+      <button class="expected-btn" onclick="toggle('showExpected')">${state.showExpected?'▲ Ukryj oczekiwany wynik':'▼ Oczekiwany wynik'}</button>
+      ${state.showExpected?`<div class="expected-box"><h5>Oczekiwany wynik (${expRes.rows.length} wierszy)</h5>${tableHTML(expRes.cols,expRes.rows)}</div>`:''}
+    `;
+  }
+
+  // feedback
+  let feedbackSection='';
+  if(ans){
+    if(ans.correct){
+      let content=`<span class="fb-label">✓ Poprawnie!</span>`;
+      if(ans.result){
+        content+=`<div class="your-result"><h5>Twój wynik (${ans.result.rows.length} wierszy)</h5>${tableHTML(ans.result.cols,ans.result.rows)}</div>`;
+      }
+      feedbackSection=`<div class="feedback ok">${content}</div>`;
     } else {
-      feedbackHTML = `<div class="feedback wrong">
-        <span class="label">✗ Niepoprawnie</span>
-        <div class="expected">Przykładowe poprawne rozwiązanie:<br><span>${q.primarySolution.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span></div>
-      </div>`;
+      let content=`<span class="fb-label">✗ Niepoprawnie</span>`;
+      if(ans.error){
+        content+=`<div class="fb-detail">Błąd SQL: <code>${ans.error.replace(/</g,'&lt;')}</code></div>`;
+      } else if(ans.mismatch && ans.result){
+        content+=`<div class="your-result fail"><h5>Twój wynik (${ans.result.rows.length} wierszy)</h5>${tableHTML(ans.result.cols,ans.result.rows)}</div>`;
+      }
+      content+=`<div class="fb-detail" style="margin-top:.6rem">Przykładowe rozwiązanie:<br><code style="white-space:pre;display:block;margin-top:.3rem;line-height:1.6">${q.primarySolution.replace(/</g,'&lt;')}</code></div>`;
+      feedbackSection=`<div class="feedback fail">${content}</div>`;
     }
   }
 
-  const schemaHTML = state.showSchema && q.tables.length ? `
-    <div class="schema-box">
-      <h4>Schemat tabel</h4>
-      <div class="schema-grid">${renderSchema(q.tables)}</div>
-    </div>` : '';
+  const hintSection=state.showHint?`<div class="hint-box">💡 ${q.hint}</div>`:'';
+  const modeBadge=q.mode==='exec'?'<span class="tag t-agg" style="font-size:.6rem">⚡ WYKONYWALNE</span>':'<span class="tag t-where" style="font-size:.6rem">📝 TEKSTOWE</span>';
 
-  const hintHTML = state.showHint ? `<div class="hint-box">💡 ${q.hint}</div>` : '';
-
-  const isAnswered = !!ans;
-
-  root.innerHTML = `
-    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-    <div class="stats">
-      <div class="stat"><span class="stat-val acc">${state.current + 1}/${QUESTIONS.length}</span>pytanie</div>
-      <div class="stat"><span class="stat-val green">${correct}</span>poprawne</div>
-      <div class="stat"><span class="stat-val red">${wrong}</span>błędne</div>
+  root.innerHTML=`
+    <div class="progress-wrap">
+      <div class="progress-meta"><span>Pytanie ${state.current+1} z ${qs.length}</span><span>${correct} ✓  ${wrong} ✗</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
     </div>
-    <div class="question-card">
-      <div class="q-number">pytanie ${state.current + 1} z ${QUESTIONS.length}</div>
-      <div class="q-tags">${q.tags.map(renderTagBadge).join('')}</div>
-      <div class="q-text">${q.text}</div>
-      ${q.tables.length ? `<button class="schema-toggle" onclick="toggleSchema()">
-        ${state.showSchema ? '▲ Ukryj schemat' : '▼ Pokaż schemat tabel'}
-      </button>` : ''}
-      ${schemaHTML}
-      <div class="editor-wrap">
-        <textarea 
-          class="sql-editor${isAnswered ? (ans.correct ? ' correct' : ' wrong') : ''}" 
-          id="sqlInput" 
-          placeholder="Wpisz zapytanie SQL..."
-          ${isAnswered ? 'readonly' : ''}
-          onkeydown="handleKey(event)"
-        >${isAnswered ? ans.value : state.userInput}</textarea>
+    <div class="stats">
+      <div class="stat"><strong class="a">${state.current+1}/${qs.length}</strong>postęp</div>
+      <div class="stat"><strong class="g">${correct}</strong>poprawne</div>
+      <div class="stat"><strong class="r">${wrong}</strong>błędne</div>
+      <div class="stat"><strong class="y">${qs.length-state.current-1}</strong>pozostało</div>
+    </div>
+    <div class="nav-dots">${dots}</div>
+    <div class="card">
+      <div class="q-meta">
+        <span class="q-num">Pytanie ${state.current+1}</span>
+        <div class="q-tags">${modeBadge} ${tagsHTML(q.tags)}</div>
       </div>
-      ${hintHTML}
-      ${feedbackHTML}
+      <div class="q-text">${q.text}</div>
+      ${schemaSection}
+      ${expectedSection}
+      <div class="editor-label">Twoje zapytanie SQL <span style="color:var(--text3);font-size:.6rem">Ctrl+Enter = sprawdź</span></div>
+      <textarea class="sql-editor${ans?(ans.correct?' ok':' fail'):''}" id="sqlInput"
+        placeholder="SELECT ..."
+        ${ans?'readonly':''}
+        onkeydown="handleKey(event)">${ans?ans.value:state.userInput}</textarea>
+      ${hintSection}
+      ${feedbackSection}
       <div class="actions">
-        ${!isAnswered ? `
-          <button class="btn btn-primary" onclick="checkAnswer()">Sprawdź ↵</button>
-          <button class="btn btn-skip" onclick="skipQuestion()">Pomiń →</button>
-          <button class="hint-btn" onclick="toggleHint()">💡 podpowiedź</button>
-        ` : `
-          <button class="btn btn-primary" onclick="nextQuestion()">${state.current < QUESTIONS.length - 1 ? 'Następne →' : 'Zobacz wyniki →'}</button>
-        `}
+        ${!ans
+          ?`<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button>
+            <button class="btn btn-skip" onclick="skip()">Pomiń →</button>
+            <button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>`
+          :`<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`
+        }
       </div>
     </div>`;
 
-  if (!isAnswered) {
-    const ta = document.getElementById('sqlInput');
-    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
-  }
+  if(!ans){ const ta=document.getElementById('sqlInput'); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);} }
 }
 
-function toggleSchema() {
-  state.showSchema = !state.showSchema;
-  const val = document.getElementById('sqlInput');
-  if (val) state.userInput = val.value;
-  render();
-}
+// ─── ACTIONS ────────────────────────────────────────────────────────
+function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
+function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; render(); }
 
-function toggleHint() {
-  state.showHint = !state.showHint;
-  const val = document.getElementById('sqlInput');
-  if (val) state.userInput = val.value;
-  render();
-}
-
-function checkAnswer() {
-  const ta = document.getElementById('sqlInput');
-  const userVal = ta ? ta.value.trim() : '';
-  if (!userVal) return;
-  const q = QUESTIONS[state.current];
-  const correct = checkSQL(userVal, q.solutions);
-  state.answered[q.id] = { value: userVal, correct };
-  state.showHint = false;
-  render();
-}
-
-function skipQuestion() {
-  const q = QUESTIONS[state.current];
-  state.answered[q.id] = { value: '', correct: false, skipped: true };
-  nextQuestion();
-}
-
-function nextQuestion() {
-  state.showHint = false;
-  state.userInput = '';
-  if (state.current < QUESTIONS.length - 1) {
-    state.current++;
-    render();
+function check(){
+  const ta=document.getElementById('sqlInput');
+  const val=ta?ta.value.trim():''; if(!val) return;
+  const q=getQuestions()[state.current];
+  if(q.mode==='text'){
+    const ok=checkText(val,q.solutions);
+    state.answered[q.id]={value:val,correct:ok};
   } else {
-    state.done = true;
-    render();
+    const res=compareResults(val,q.answer);
+    if(res.ok){
+      state.answered[q.id]={value:val,correct:true,result:res.actual};
+    } else if(res.mismatch){
+      state.answered[q.id]={value:val,correct:false,mismatch:true,result:res.actual};
+    } else {
+      state.answered[q.id]={value:val,correct:false,error:res.error};
+    }
   }
-}
-
-function handleKey(e) {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    checkAnswer();
-  }
-}
-
-function restartQuiz() {
-  state = { current: 0, answered: {}, showSchema: false, showHint: false, userInput: '', done: false };
+  state.showHint=false;
   render();
 }
 
-render();
+function skip(){ const q=getQuestions()[state.current]; state.answered[q.id]={value:'',correct:false,skipped:true}; next(); }
+function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} }
+function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
+function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,userInput:'',done:false}; render(); }
+
+function switchSet(n){
+  currentSet=n;
+  document.getElementById('btn-set1').className='set-btn'+(n===1?' active':'');
+  document.getElementById('btn-set2').className='set-btn'+(n===2?' active':'');
+  restart();
+}
+
+// ─── INIT SQL.JS ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(typeof initSqlJs==='undefined'){
+    document.getElementById('root').innerHTML='<div class="loading"><p style="color:var(--red)">Błąd: nie można załadować sql.js. Sprawdź połączenie z internetem.</p></div>';
+    return;
+  }
+  initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}` }).then(SQL=>{
+    db = new SQL.Database();
+    db.run(DB_INIT);
+    render();
+  }).catch(e=>{
+    document.getElementById('root').innerHTML=`<div class="loading"><p style="color:var(--red)">Błąd inicjalizacji: ${e.message}</p></div>`;
+  });
+});
 </script>
 </body>
 </html>
