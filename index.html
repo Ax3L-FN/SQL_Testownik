@@ -48,7 +48,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .stat strong.attempts{color:var(--cyan)}
 
 /* CARD */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.5rem}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.5rem;position:relative}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.3}
 .q-meta{display:flex;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
 .q-num{font-size:.65rem;color:var(--text3);text-transform:uppercase}
@@ -116,7 +116,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ============================================================
-// SCHEMA - nazwy tabel DUŻĄ LITERĄ (bez cudzysłowów)
+// SCHEMA - nazwy w schemacie DUŻĄ LITERĄ (dla czytelności)
 // ============================================================
 const SCHEMA_DEFS = {
   KRAJE:{cols:[{name:'id_kraju',type:'INTEGER',pk:true},{name:'nazwa_kraju',type:'TEXT'},{name:'stolica',type:'TEXT'},{name:'kod',type:'CHAR(3)'}]},
@@ -156,7 +156,7 @@ INSERT INTO kierowcy (first_name,family_name) VALUES ('Jan','Kowalski'),('Anna',
 `;
 
 // ============================================================
-// PYTANIA - poprawione, żeby oczekiwany wynik był poprawny
+// PYTANIA
 // ============================================================
 const SET1 = [
   {id:'1a',set:1,mode:'exec',text:'Wyświetl tytuły filmów z <strong>belgijskich wytwórni</strong>. Posortuj alfabetycznie.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],hint:"JOIN, WHERE nazwa_kraju='Belgia'",answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul;`},
@@ -199,28 +199,43 @@ let state = { current:0, answered:{}, showSchema:false, showExpected:false, show
 function getQuestions(){ return ALL_QUESTIONS.filter(q=>q.set===currentSet); }
 
 function saveProgress(){
-  const toSave = { currentSet, state:{ current:state.current, answered:state.answered, done:state.done, attemptHistory:state.attemptHistory } };
-  localStorage.setItem('sql_testownik', JSON.stringify(toSave));
+  try{
+    const toSave = { 
+      currentSet: currentSet, 
+      current: state.current,
+      answered: state.answered,
+      done: state.done,
+      attemptHistory: state.attemptHistory
+    };
+    localStorage.setItem('sql_testownik', JSON.stringify(toSave));
+    console.log('Zapisano postęp:', toSave);
+  }catch(e){ console.error('Błąd zapisu:', e); }
 }
 
 function loadProgress(){
-  const saved = localStorage.getItem('sql_testownik');
-  if(saved){
-    try{
+  try{
+    const saved = localStorage.getItem('sql_testownik');
+    if(saved){
       const data = JSON.parse(saved);
-      currentSet = data.currentSet;
-      state.current = data.state.current;
-      state.answered = data.state.answered;
-      state.done = data.state.done;
-      state.attemptHistory = data.state.attemptHistory || {};
-      document.getElementById('btn-set1').className='set-btn'+(currentSet===1?' active':'');
-      document.getElementById('btn-set2').className='set-btn'+(currentSet===2?' active':'');
-    }catch(e){}
-  }
+      currentSet = data.currentSet || 1;
+      state.current = data.current || 0;
+      state.answered = data.answered || {};
+      state.done = data.done || false;
+      state.attemptHistory = data.attemptHistory || {};
+      
+      // Aktualizacja przycisków zestawów
+      const btn1 = document.getElementById('btn-set1');
+      const btn2 = document.getElementById('btn-set2');
+      if(btn1) btn1.className = 'set-btn' + (currentSet === 1 ? ' active' : '');
+      if(btn2) btn2.className = 'set-btn' + (currentSet === 2 ? ' active' : '');
+      
+      console.log('Wczytano postęp:', {currentSet, current: state.current, answeredCount: Object.keys(state.answered).length});
+    }
+  }catch(e){ console.error('Błąd wczytywania:', e); }
 }
 
 function resetAllProgress(){
-  if(confirm('Czy na pewno chcesz zresetować cały postęp? Wszystkie odpowiedzi zostaną usunięte.')){
+  if(confirm('⚠️ Czy na pewno chcesz zresetować cały postęp? Wszystkie odpowiedzi zostaną usunięte.')){
     localStorage.removeItem('sql_testownik');
     state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
     render();
@@ -236,14 +251,14 @@ function runQuery(sql){
   }catch(e){ return {ok:false,error:e.message}; }
 }
 
-// Inteligentne porównanie WYNIKÓW, nie zapytań!
+// Inteligentne porównanie WYNIKÓW (tylko dane, nie nazwy kolumn)
 function compareResults(userSQL, answerSQL){
   const expected = runQuery(answerSQL);
   if(!expected.ok) return {ok:false,error:'Błąd wzorcowego zapytania: '+expected.error};
   const actual = runQuery(userSQL);
   if(!actual.ok) return {ok:false,error:actual.error};
   
-  // Porównujemy tylko DANE (wiersze), ignorując nazwy kolumn
+  // Porównujemy tylko wartości wierszy
   const normalizeRows = (rows) => rows.map(row => row.map(cell => cell === null ? null : String(cell).trim()));
   const actualRows = normalizeRows(actual.rows);
   const expectedRows = normalizeRows(expected.rows);
@@ -270,7 +285,7 @@ function tableHTML(cols,rows){
   if(!cols||!cols.length) return '<em style="color:var(--text3)">Brak wyników</em>';
   const header=cols.map(c=>`<th>${c}</th>`).join('');
   const body=rows.map(r=>`<tr>${r.map(v=>`<td>${v===null?'NULL':v}</td>`).join('')}</tr>`).join('');
-  return `<div style="overflow-x:auto"><table class="result-table"><thead><tr>${header}</thead><tbody>${body}</tbody></tr></div>`;
+  return `<div style="overflow-x:auto"><table class="result-table"><thead><tr>${header}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 const TAG_MAP={join:'t-join',where:'t-where',order:'t-order',group:'t-group',agg:'t-agg',left:'t-left'};
@@ -281,7 +296,7 @@ function render(){
   const qs = getQuestions();
   
   if(state.done){
-    const correct = Object.values(state.answered).filter(a=>a.correct).length;
+    const correct = Object.values(state.answered).filter(a=>a && a.correct).length;
     const totalAttempts = Object.values(state.attemptHistory).reduce((a,b)=>a+b,0);
     app.innerHTML = `
       <div class="hdr"><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// inteligentne porównanie wyników</div></div>
@@ -292,8 +307,8 @@ function render(){
   const q = qs[state.current];
   const ans = state.answered[q.id];
   const progress = (state.current/qs.length)*100;
-  const correct = Object.values(state.answered).filter(a=>a.correct).length;
-  const wrong = Object.values(state.answered).filter(a=>!a.correct).length;
+  const correct = Object.values(state.answered).filter(a=>a && a.correct).length;
+  const wrong = Object.values(state.answered).filter(a=>a && !a.correct).length;
   const attempts = state.attemptHistory[q.id] || 0;
   
   const dots = qs.map((qq,i)=>{ const a=state.answered[qq.id]; const cls=a?(a.correct?'ok':'fail'):(i===state.current?'current':''); return `<div class="dot ${cls}" onclick="jumpTo(${i})" title="Pytanie ${i+1}"></div>`; }).join('');
@@ -352,7 +367,7 @@ function render(){
 }
 
 function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
-function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); }
+function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); saveProgress(); }
 function retryQuestion(){ const q=getQuestions()[state.current]; delete state.answered[q.id]; state.showSolution=false; state.userInput=''; render(); }
 
 function check(){
@@ -379,7 +394,18 @@ function skip(){ const q=getQuestions()[state.current]; state.answered[q.id]={va
 function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.showSolution=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} saveProgress(); }
 function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
 function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,showSolution:false,userInput:'',done:false,attemptHistory:{}}; saveProgress(); render(); }
-function switchSet(n){ currentSet=n; saveProgress(); restart(); }
+function switchSet(n){ 
+  currentSet = n; 
+  saveProgress();
+  // Odśwież przyciski
+  const btn1 = document.getElementById('btn-set1');
+  const btn2 = document.getElementById('btn-set2');
+  if(btn1) btn1.className = 'set-btn' + (n === 1 ? ' active' : '');
+  if(btn2) btn2.className = 'set-btn' + (n === 2 ? ' active' : '');
+  // Załaduj zapisany stan dla tego zestawu
+  loadProgress();
+  render();
+}
 
 window.addEventListener('DOMContentLoaded', ()=>{
   initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}` }).then(SQL=>{
