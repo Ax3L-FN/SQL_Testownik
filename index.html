@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SQL Testownik - Wersja PRO</title>
+<title>SQL Testownik - Inteligentne porównanie</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 <style>
@@ -17,31 +17,20 @@
   --mono:'JetBrains Mono',monospace;--display:'Unbounded',sans-serif;
 }
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
 .app{max-width:900px;margin:0 auto;padding:2rem 1.2rem 5rem;position:relative;z-index:1}
-
-/* MODE SWITCHER */
-.mode-switcher{display:flex;gap:1rem;margin-bottom:2rem;justify-content:center}
-.mode-btn{font-family:var(--display);font-size:.85rem;font-weight:700;padding:.7rem 1.5rem;border-radius:10px;border:2px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;transition:.2s}
-.mode-btn.active{background:linear-gradient(135deg,var(--acc),var(--cyan));border-color:transparent;color:#fff;box-shadow:0 4px 15px rgba(108,99,255,.3)}
-.mode-btn:hover:not(.active){border-color:var(--acc);color:var(--acc2);transform:translateY(-2px)}
-
-/* EXAM MODE TOGGLE */
-.exam-toggle{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;margin-bottom:1rem;display:inline-flex;align-items:center;gap:.5rem;cursor:pointer}
-.exam-toggle input{margin-right:.3rem;cursor:pointer;width:16px;height:16px}
-.exam-toggle label{font-size:.7rem;color:var(--text2);cursor:pointer;font-family:var(--mono)}
-.exam-toggle.active{border-color:var(--red);background:rgba(231,76,60,.1)}
-.exam-toggle.active label{color:var(--red);font-weight:700}
 
 /* HEADER */
 .hdr{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
 .hdr h1{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900}
 .hdr h1 .hl{color:var(--acc2)}
-.hdr-sub{font-size:0.72rem;color:var(--text3);margin-top:.6rem;letter-spacing:.12em;text-transform:uppercase}
-.set-switcher{display:flex;gap:.4rem;margin-top:1rem}
+.hdr-sub{font-size:0.72rem;color:var(--text3);margin-top:.6rem;letter-spacing:.12em}
+.set-switcher{display:flex;gap:.4rem;margin-top:1rem;align-items:center;flex-wrap:wrap}
 .set-btn{font-family:var(--display);font-size:.65rem;font-weight:700;padding:.4rem .9rem;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
 .set-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.reset-progress{background:transparent;border:1.5px solid var(--red);color:var(--red);padding:.4rem .9rem;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer;margin-left:.5rem;font-family:var(--display)}
+.reset-progress:hover{background:rgba(231,76,60,.15)}
 
 /* PROGRESS */
 .progress-wrap{margin-bottom:1.5rem}
@@ -59,7 +48,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .stat strong.attempts{color:var(--cyan)}
 
 /* CARD */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.5rem;position:relative}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.5rem}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.3}
 .q-meta{display:flex;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
 .q-num{font-size:.65rem;color:var(--text3);text-transform:uppercase}
@@ -74,19 +63,14 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .q-text strong{color:var(--acc3)}
 
 /* EDITOR */
-.editor-wrapper{position:relative}
 .sql-editor{width:100%;min-height:100px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;font-family:var(--mono);font-size:.85rem;color:var(--text);resize:vertical;outline:none;line-height:1.6}
 .sql-editor:focus{border-color:var(--acc)}
-.editor-toolbar{display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap}
-.tool-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.7rem;font-family:var(--mono)}
-.tool-btn:hover{border-color:var(--acc);color:var(--acc2)}
 
 /* FEEDBACK */
 .feedback{margin-top:1rem;border-radius:10px;padding:1rem;font-size:.8rem}
 .feedback.ok{background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.22);color:var(--green)}
 .feedback.fail{background:rgba(231,76,60,.07);border:1px solid rgba(231,76,60,.22);color:var(--red)}
 .feedback .fb-label{font-weight:700;margin-bottom:.4rem;display:block}
-.fb-detail{margin-top:.5rem;font-size:.75rem}
 
 /* ACTIONS */
 .actions{display:flex;gap:.7rem;margin-top:1.2rem;flex-wrap:wrap}
@@ -94,7 +78,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .btn-primary{background:var(--acc);color:#fff}
 .btn-primary:hover{background:var(--acc2);transform:translateY(-1px)}
 .btn-skip{background:transparent;color:var(--text3);border:1px solid var(--border)}
-.btn-hint{background:transparent;color:var(--text3);border:none}
+.btn-hint{background:transparent;color:var(--text3);border:none;cursor:pointer}
 .btn-hint:hover{color:var(--yellow)}
 .btn-retry{background:transparent;color:var(--yellow);border:1px solid var(--yellow)}
 .btn-retry:hover{background:rgba(243,156,18,.1)}
@@ -102,8 +86,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .schema-btn,.expected-btn{font-size:.7rem;background:transparent;border:1px solid var(--border);border-radius:6px;padding:.25rem .7rem;cursor:pointer;margin-right:.5rem;margin-bottom:.5rem;color:var(--text2)}
 .schema-btn:hover,.expected-btn:hover{border-color:var(--acc);color:var(--acc2)}
 .schema,.expected-box{background:var(--bg3);border-radius:10px;padding:1rem;margin-bottom:1rem}
-.schema-grid{display:flex;gap:1rem;flex-wrap:wrap}
-.s-tbl-name{color:var(--acc2);font-weight:700;margin-bottom:.3rem}
+.schema-grid{display:flex;gap:1.5rem;flex-wrap:wrap}
+.s-tbl-name{color:var(--acc2);font-weight:700;margin-bottom:.3rem;font-size:.8rem}
 .s-col{padding:.1rem 0;color:var(--text2);font-size:.7rem}
 .s-col .cn{color:var(--text)}
 .result-table{border-collapse:collapse;font-size:.7rem;width:100%}
@@ -121,6 +105,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .loading{text-align:center;padding:3rem}
 .spinner{width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
+.your-result{margin-top:.8rem}
+.fb-detail{margin-top:.5rem;font-size:.75rem}
 .solution-content{background:var(--bg3);padding:.5rem;border-radius:6px;margin-top:.5rem;white-space:pre-wrap;font-size:.7rem}
 @media(max-width:580px){.schema-grid{flex-direction:column}}
 </style>
@@ -130,7 +116,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ============================================================
-// KONFIGURACJA - TE SAME PYTANIA
+// SCHEMA - nazwy tabel DUŻĄ LITERĄ (bez cudzysłowów)
 // ============================================================
 const SCHEMA_DEFS = {
   KRAJE:{cols:[{name:'id_kraju',type:'INTEGER',pk:true},{name:'nazwa_kraju',type:'TEXT'},{name:'stolica',type:'TEXT'},{name:'kod',type:'CHAR(3)'}]},
@@ -169,20 +155,23 @@ INSERT INTO hasla_testowe (login,haslo) VALUES ('admin','abc_123'),('student','b
 INSERT INTO kierowcy (first_name,family_name) VALUES ('Jan','Kowalski'),('Anna','Nowak'),('Robert','Lewandowski');
 `;
 
+// ============================================================
+// PYTANIA - poprawione, żeby oczekiwany wynik był poprawny
+// ============================================================
 const SET1 = [
-  {id:'1a',set:1,mode:'exec',text:'Wyświetl tytuły filmów z <strong>belgijskich wytwórni</strong>. Posortuj alfabetycznie.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],hint:"JOIN, WHERE nazwa_kraju='Belgia'",answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul;`},
-  {id:'2a',set:1,mode:'exec',text:'Wyświetl tytuły filmów z <strong>belgijskich lub hiszpańskich wytwórni</strong>. Posortuj alfabetycznie.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],hint:"WHERE ... OR ...",answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania' ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul;`},
+  {id:'1a',set:1,mode:'exec',text:'Wyświetl tytuły filmów z <strong>belgijskich wytwórni</strong>. Posortuj alfabetycznie.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],hint:"JOIN, WHERE nazwa_kraju='Belgia'",answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' ORDER BY filmy.tytul;`},
+  {id:'2a',set:1,mode:'exec',text:'Wyświetl tytuły filmów z <strong>belgijskich lub hiszpańskich wytwórni</strong>. Posortuj alfabetycznie.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where','order'],hint:"WHERE ... OR ...",answer:`SELECT filmy.tytul FROM filmy INNER JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Belgia' OR kraje.nazwa_kraju='Hiszpania' ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul;`},
   {id:'3a',set:1,mode:'exec',text:'Wyświetl <strong>nazwy krajów i stolice</strong> krajów z kodem państwa. Posortuj odwrotnie alfabetycznie.',tables:['KRAJE'],tags:['where','order'],hint:"WHERE kod IS NOT NULL",answer:`SELECT nazwa_kraju, stolica FROM kraje WHERE kod IS NOT NULL ORDER BY nazwa_kraju DESC`,primarySolution:`SELECT nazwa_kraju, stolica FROM kraje WHERE kod IS NOT NULL ORDER BY nazwa_kraju DESC;`},
   {id:'4a',set:1,mode:'exec',text:'Wyświetl <strong>nazwy krajów i stolice</strong> krajów z kodem państwa. Posortuj odwrotnie wg kodów.',tables:['KRAJE'],tags:['where','order'],hint:"ORDER BY kod DESC",answer:`SELECT nazwa_kraju, stolica FROM kraje WHERE kod IS NOT NULL ORDER BY kod DESC`,primarySolution:`SELECT nazwa_kraju, stolica FROM kraje WHERE kod IS NOT NULL ORDER BY kod DESC;`},
-  {id:'5a',set:1,mode:'exec',text:'Wyświetl nazwy wytwórni z krajów osób o nazwiskach <strong>Gauss, Dawkins, Pasteur, Ulam</strong>.',tables:['WYTWORNIE','KRAJE','OSOBY'],tags:['join','where'],hint:"JOIN i DISTINCT",answer:`SELECT DISTINCT wytwornie.nazwa FROM wytwornie INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju INNER JOIN osoby ON kraje.id_kraju=osoby.kraj WHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam') ORDER BY wytwornie.nazwa`,primarySolution:`SELECT DISTINCT wytwornie.nazwa FROM wytwornie INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju INNER JOIN osoby ON kraje.id_kraju=osoby.kraj WHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam') ORDER BY wytwornie.nazwa;`},
+  {id:'5a',set:1,mode:'exec',text:'Wyświetl nazwy wytwórni z krajów osób o nazwiskach <strong>Gauss, Dawkins, Pasteur, Ulam</strong>.',tables:['WYTWORNIE','KRAJE','OSOBY'],tags:['join','where'],hint:"JOIN i DISTINCT",answer:`SELECT DISTINCT wytwornie.nazwa FROM wytwornie INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju INNER JOIN osoby ON kraje.id_kraju=osoby.kraj WHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam') ORDER BY wytwornie.nazwa`,primarySolution:`SELECT DISTINCT wytwornie.nazwa FROM wytwornie JOIN kraje ON wytwornie.kraj=kraje.id_kraju JOIN osoby ON kraje.id_kraju=osoby.kraj WHERE osoby.nazwisko IN ('Gauss','Dawkins','Pasteur','Ulam') ORDER BY wytwornie.nazwa;`},
   {id:'6a',set:1,mode:'exec',text:'Wyświetl nazwę i rok założenia <strong>najwcześniej założonej szwedzkiej wytwórni</strong>.',tables:['WYTWORNIE','KRAJE'],tags:['join','order','limit'],hint:"ORDER BY rok_zalozenia ASC LIMIT 1",answer:`SELECT wytwornie.nazwa, wytwornie.rok_zalozenia FROM wytwornie INNER JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju='Szwecja' ORDER BY wytwornie.rok_zalozenia ASC LIMIT 1`,primarySolution:`SELECT nazwa, rok_zalozenia FROM wytwornie JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE nazwa_kraju='Szwecja' ORDER BY rok_zalozenia LIMIT 1;`},
   {id:'7a',set:1,mode:'exec',text:'Wyświetl nazwy <strong>wszystkich klientów i numery zamówień</strong> — łącznie z klientami bez zamówień.',tables:['KLIENCI','ZAMOWIENIA'],tags:['left'],hint:"LEFT JOIN",answer:`SELECT klienci.nazwa, zamowienia.id_zamowienia FROM klienci LEFT JOIN zamowienia ON zamowienia.id_klienta=klienci.id_klienta`,primarySolution:`SELECT klienci.nazwa, zamowienia.id_zamowienia FROM klienci LEFT JOIN zamowienia ON klienci.id_klienta=zamowienia.id_klienta;`},
-  {id:'8a',set:1,mode:'exec',text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj rosnąco wg liczby.',tables:['KRAJE','OSOBY'],tags:['join','agg','group'],hint:"GROUP BY, COUNT",answer:`SELECT kraje.nazwa_kraju, COUNT(osoby.id_osoby) FROM kraje INNER JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(osoby.id_osoby)`,primarySolution:`SELECT kraje.nazwa_kraju, COUNT(*) FROM kraje JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(*);`},
+  {id:'8a',set:1,mode:'exec',text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj rosnąco wg liczby. Kolumny: "Nazwa kraju", "Liczba osób".',tables:['KRAJE','OSOBY'],tags:['join','agg','group'],hint:"GROUP BY, COUNT, ORDER BY",answer:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(osoby.id_osoby) AS 'Liczba osób' FROM kraje INNER JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(osoby.id_osoby)`,primarySolution:`SELECT kraje.nazwa_kraju AS 'Nazwa kraju', COUNT(*) AS 'Liczba osób' FROM kraje JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY COUNT(*);`},
   {id:'9a',set:1,mode:'exec',text:'Wyświetl <strong>nazwy krajów i liczbę osób</strong> z nich. Posortuj odwrotnie alfabetycznie.',tables:['KRAJE','OSOBY'],tags:['join','agg','group'],hint:"ORDER BY nazwa_kraju DESC",answer:`SELECT kraje.nazwa_kraju, COUNT(osoby.id_osoby) FROM kraje INNER JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY kraje.nazwa_kraju DESC`,primarySolution:`SELECT kraje.nazwa_kraju, COUNT(*) FROM kraje JOIN osoby ON kraje.id_kraju=osoby.kraj GROUP BY kraje.nazwa_kraju ORDER BY kraje.nazwa_kraju DESC;`},
-  {id:'10a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>nadawania uprawnień</strong>?',tables:[],tags:[],hint:'GRANT',solutions:['grant'],primarySolution:'GRANT'},
-  {id:'11a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>wycofania zmian</strong> w transakcji?',tables:[],tags:[],hint:'ROLLBACK',solutions:['rollback'],primarySolution:'ROLLBACK'},
-  {id:'12a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>aktualizacji rekordów</strong>?',tables:[],tags:[],hint:'UPDATE',solutions:['update'],primarySolution:'UPDATE'},
-  {id:'13a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>zmiany schematu tabeli</strong>?',tables:[],tags:[],hint:'ALTER TABLE',solutions:['alter table'],primarySolution:'ALTER TABLE'}
+  {id:'10a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>nadawania uprawnień</strong>?',tables:[],tags:[],hint:'GRANT',solutions:['grant','GRANT'],primarySolution:'GRANT'},
+  {id:'11a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>wycofania zmian</strong> w transakcji?',tables:[],tags:[],hint:'ROLLBACK',solutions:['rollback','ROLLBACK'],primarySolution:'ROLLBACK'},
+  {id:'12a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>aktualizacji rekordów</strong>?',tables:[],tags:[],hint:'UPDATE',solutions:['update','UPDATE'],primarySolution:'UPDATE'},
+  {id:'13a',set:1,mode:'text',text:'Jaka instrukcja SQL służy do <strong>zmiany schematu tabeli</strong>?',tables:[],tags:[],hint:'ALTER TABLE',solutions:['alter table','ALTER TABLE'],primarySolution:'ALTER TABLE'}
 ];
 
 const SET2 = [
@@ -192,8 +181,8 @@ const SET2 = [
   {id:'s2_4',set:2,mode:'exec',text:'Wyświetl telefony, których marka nie należy do Apple, Samsung i Microsoft.',tables:['TELEFONY'],tags:['where'],hint:"NOT IN",answer:`SELECT marka, model, cena FROM telefony WHERE marka NOT IN ('Apple','Samsung','Microsoft') ORDER BY marka`,primarySolution:`SELECT marka, model, cena FROM telefony WHERE marka NOT IN ('Apple','Samsung','Microsoft') ORDER BY marka;`},
   {id:'s2_5',set:2,mode:'exec',text:'Wyświetl filmy, których tytuł zaczyna się od litery „S".',tables:['FILMY'],tags:['where'],hint:"LIKE 'S%'",answer:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul`,primarySolution:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul;`},
   {id:'s2_6',set:2,mode:'exec',text:'Wyświetl loginy i hasła kont, których hasło zawiera dosłowny znak podkreślenia.',tables:['HASLA_TESTOWE'],tags:['where'],hint:"LIKE '%!_%' ESCAPE '!'",answer:`SELECT login, haslo FROM hasla_testowe WHERE haslo LIKE '%!_%' ESCAPE '!'`,primarySolution:`SELECT login, haslo FROM hasla_testowe WHERE haslo LIKE '%!_%' ESCAPE '!';`},
-  {id:'s2_7',set:2,mode:'exec',text:'Policz liczbę filmów, średnią ocenę i sumę budżetów.',tables:['FILMY'],tags:['agg'],hint:"COUNT, AVG, SUM",answer:`SELECT COUNT(*) AS liczba, ROUND(AVG(ocena),2) AS srednia, SUM(budzet_mln) AS suma FROM filmy`,primarySolution:`SELECT COUNT(*) as liczba_filmow, ROUND(AVG(ocena),2) as srednia_ocena, SUM(budzet_mln) as suma_budzetow FROM filmy;`},
-  {id:'s2_8',set:2,mode:'exec',text:'Wyświetl gatunki z co najmniej 2 filmami.',tables:['FILMY'],tags:['group','agg'],hint:"HAVING COUNT(*) >= 2",answer:`SELECT gatunek, COUNT(*) FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY COUNT(*) DESC`,primarySolution:`SELECT gatunek, COUNT(*) as liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY liczba DESC;`},
+  {id:'s2_7',set:2,mode:'exec',text:'Policz liczbę filmów, średnią ocenę i sumę budżetów.',tables:['FILMY'],tags:['agg'],hint:"COUNT, AVG, SUM",answer:`SELECT COUNT(*) AS liczba_filmow, ROUND(AVG(ocena),2) AS srednia_ocena, SUM(budzet_mln) AS suma_budzetow FROM filmy`,primarySolution:`SELECT COUNT(*) as liczba_filmow, ROUND(AVG(ocena),2) as srednia_ocena, SUM(budzet_mln) as suma_budzetow FROM filmy;`},
+  {id:'s2_8',set:2,mode:'exec',text:'Wyświetl gatunki z co najmniej 2 filmami.',tables:['FILMY'],tags:['group','agg'],hint:"HAVING COUNT(*) >= 2",answer:`SELECT gatunek, COUNT(*) AS liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY COUNT(*) DESC`,primarySolution:`SELECT gatunek, COUNT(*) as liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY liczba DESC;`},
   {id:'s2_9',set:2,mode:'exec',text:'Wyświetl pełne imię i nazwisko każdego kierowcy w kolumnie "Kierowca".',tables:['KIEROWCY'],tags:['text'],hint:"|| konkatenacja",answer:`SELECT first_name || ' ' || family_name AS Kierowca FROM kierowcy ORDER BY family_name`,primarySolution:`SELECT first_name || ' ' || family_name AS Kierowca FROM kierowcy ORDER BY family_name;`},
   {id:'s2_10',set:2,mode:'exec',text:'Wyświetl tytuły filmów z belgijskich lub hiszpańskich wytwórni.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where'],hint:"JOIN, IN ('Belgia','Hiszpania')",answer:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul;`}
 ];
@@ -201,23 +190,21 @@ const SET2 = [
 const ALL_QUESTIONS = [...SET1, ...SET2];
 
 // ============================================================
-// GŁÓWNA APLIKACJA - WERSJA PRO
+// GŁÓWNA APLIKACJA
 // ============================================================
 let db = null;
-let currentMode = 'pro'; // zawsze pro, ale z przełącznikiem trybu egzaminacyjnego
 let currentSet = 1;
-let examMode = false; // TRYB EGZAMINACYJNY - brak podpowiedzi i rozwiązań
 let state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
 
 function getQuestions(){ return ALL_QUESTIONS.filter(q=>q.set===currentSet); }
 
 function saveProgress(){
-  const toSave = { currentSet, state:{ current:state.current, answered:state.answered, done:state.done, attemptHistory:state.attemptHistory }, examMode };
-  localStorage.setItem('sql_testownik_pro', JSON.stringify(toSave));
+  const toSave = { currentSet, state:{ current:state.current, answered:state.answered, done:state.done, attemptHistory:state.attemptHistory } };
+  localStorage.setItem('sql_testownik', JSON.stringify(toSave));
 }
 
 function loadProgress(){
-  const saved = localStorage.getItem('sql_testownik_pro');
+  const saved = localStorage.getItem('sql_testownik');
   if(saved){
     try{
       const data = JSON.parse(saved);
@@ -226,12 +213,17 @@ function loadProgress(){
       state.answered = data.state.answered;
       state.done = data.state.done;
       state.attemptHistory = data.state.attemptHistory || {};
-      examMode = data.examMode || false;
-      const examToggle = document.getElementById('examToggleCheck');
-      if(examToggle) examToggle.checked = examMode;
       document.getElementById('btn-set1').className='set-btn'+(currentSet===1?' active':'');
       document.getElementById('btn-set2').className='set-btn'+(currentSet===2?' active':'');
     }catch(e){}
+  }
+}
+
+function resetAllProgress(){
+  if(confirm('Czy na pewno chcesz zresetować cały postęp? Wszystkie odpowiedzi zostaną usunięte.')){
+    localStorage.removeItem('sql_testownik');
+    state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
+    render();
   }
 }
 
@@ -244,12 +236,20 @@ function runQuery(sql){
   }catch(e){ return {ok:false,error:e.message}; }
 }
 
+// Inteligentne porównanie WYNIKÓW, nie zapytań!
 function compareResults(userSQL, answerSQL){
   const expected = runQuery(answerSQL);
   if(!expected.ok) return {ok:false,error:'Błąd wzorcowego zapytania: '+expected.error};
   const actual = runQuery(userSQL);
   if(!actual.ok) return {ok:false,error:actual.error};
-  const same = JSON.stringify({cols:actual.cols,rows:actual.rows}) === JSON.stringify({cols:expected.cols,rows:expected.rows});
+  
+  // Porównujemy tylko DANE (wiersze), ignorując nazwy kolumn
+  const normalizeRows = (rows) => rows.map(row => row.map(cell => cell === null ? null : String(cell).trim()));
+  const actualRows = normalizeRows(actual.rows);
+  const expectedRows = normalizeRows(expected.rows);
+  
+  const same = JSON.stringify(actualRows) === JSON.stringify(expectedRows);
+  
   if(same) return {ok:true,actual,expected};
   return {ok:false,actual,expected,mismatch:true};
 }
@@ -259,14 +259,18 @@ function checkText(user, solutions){ return solutions.some(s=>normText(s)===norm
 
 function schemaHTML(names){
   if(!names.length) return '';
-  return names.map(n=>{ const t=SCHEMA_DEFS[n.toUpperCase()]; if(!t) return ''; return `<div><div class="s-tbl-name">${n}</div>${t.cols.map(c=>`<div class="s-col"><span class="cn">${c.name}</span><span style="color:var(--text3)"> · ${c.type}</span></div>`).join('')}</div>`; }).join('');
+  return names.map(n=>{ 
+    const t=SCHEMA_DEFS[n.toUpperCase()]; 
+    if(!t) return ''; 
+    return `<div><div class="s-tbl-name">📋 ${n}</div>${t.cols.map(c=>`<div class="s-col"><span class="cn">${c.name}</span> <span style="color:var(--text3)">${c.type}</span>${c.pk?' 🔑':''}</div>`).join('')}</div>`;
+  }).join('');
 }
 
 function tableHTML(cols,rows){
   if(!cols||!cols.length) return '<em style="color:var(--text3)">Brak wyników</em>';
   const header=cols.map(c=>`<th>${c}</th>`).join('');
   const body=rows.map(r=>`<tr>${r.map(v=>`<td>${v===null?'NULL':v}</td>`).join('')}</tr>`).join('');
-  return `<div style="overflow-x:auto"><table class="result-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div style="overflow-x:auto"><table class="result-table"><thead><tr>${header}</thead><tbody>${body}</tbody></tr></div>`;
 }
 
 const TAG_MAP={join:'t-join',where:'t-where',order:'t-order',group:'t-group',agg:'t-agg',left:'t-left'};
@@ -280,18 +284,8 @@ function render(){
     const correct = Object.values(state.answered).filter(a=>a.correct).length;
     const totalAttempts = Object.values(state.attemptHistory).reduce((a,b)=>a+b,0);
     app.innerHTML = `
-      <div class="mode-switcher">
-        <div class="exam-toggle ${examMode?'active':''}" onclick="toggleExamMode()">
-          <input type="checkbox" id="examToggleCheck" ${examMode?'checked':''} onchange="toggleExamMode()">
-          <label>🎓 Tryb egzaminacyjny (brak podpowiedzi)</label>
-        </div>
-      </div>
-      <div class="hdr"><h1>SQL <span class="hl">Testownik PRO</span></h1><div class="hdr-sub">// ${examMode?'TRYB EGZAMINACYJNY 🔒':'TRYB NAUKI 📚'}</div></div>
-      <div class="set-switcher" style="margin-top:1rem">
-        <button class="set-btn ${currentSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button>
-        <button class="set-btn ${currentSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button>
-      </div>
-      <div class="summary"><h2>🎉 Gotowe!</h2><span class="score-big">${correct}/${qs.length}</span><p class="summary-msg">${Math.round(correct/qs.length*100)}% poprawnych</p><p class="summary-detail">Łącznie prób: ${totalAttempts}</p><button class="btn-restart" onclick="restart()">Zacznij od nowa</button></div>`;
+      <div class="hdr"><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// inteligentne porównanie wyników</div></div>
+      <div class="summary"><h2>🎉 Gotowe!</h2><span class="score-big">${correct}/${qs.length}</span><p class="summary-msg">${Math.round(correct/qs.length*100)}% poprawnych</p><p class="summary-detail">Łącznie prób: ${totalAttempts}</p><button class="btn-restart" onclick="restart()">Zacznij od nowa</button><button class="btn-restart" style="background:var(--red);margin-left:1rem" onclick="resetAllProgress()">🗑️ Resetuj postęp</button></div>`;
     return;
   }
   
@@ -306,44 +300,36 @@ function render(){
   
   const schemaSection = q.tables.length ? `<button class="schema-btn" onclick="toggle('showSchema')">${state.showSchema?'▲ Ukryj schemat':'▼ Schemat tabel'}</button>${state.showSchema?`<div class="schema"><div class="schema-grid">${schemaHTML(q.tables)}</div></div>`:''}` : '';
   
-  const expectedSection = (q.mode==='exec' && db && !examMode) ? `<button class="expected-btn" onclick="toggle('showExpected')">${state.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}</button>${state.showExpected?`<div class="expected-box"><h5>Oczekiwany wynik</h5>${tableHTML(runQuery(q.answer).cols,runQuery(q.answer).rows)}</div>`:''}` : '';
+  const expectedSection = (q.mode==='exec' && db) ? `<button class="expected-btn" onclick="toggle('showExpected')">${state.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}</button>${state.showExpected?`<div class="expected-box"><h5>📋 Oczekiwany wynik</h5>${tableHTML(runQuery(q.answer).cols,runQuery(q.answer).rows)}</div>`:''}` : '';
   
   let feedbackSection = '';
   if(ans){
     if(ans.correct){
-      feedbackSection = `<div class="feedback ok"><span class="fb-label">✓ Poprawnie! (próba ${attempts+1})</span>${ans.result?`<div class="your-result"><h5>Twój wynik</h5>${tableHTML(ans.result.cols,ans.result.rows)}</div>`:''}</div>`;
+      feedbackSection = `<div class="feedback ok"><span class="fb-label">✓ Poprawnie! (próba ${attempts+1})</span>${ans.result?`<div class="your-result"><h5>📊 Twój wynik</h5>${tableHTML(ans.result.cols,ans.result.rows)}</div>`:''}</div>`;
     } else {
       let content = `<span class="fb-label">✗ Niepoprawnie (próba ${attempts+1})</span>`;
-      if(ans.error) content += `<div class="fb-detail">Błąd SQL: <code>${ans.error}</code></div>`;
+      if(ans.error) content += `<div class="fb-detail">❌ Błąd SQL: <code>${ans.error}</code></div>`;
       else if(ans.mismatch && ans.actual){
-        content += `<div class="your-result fail"><h5>Twój wynik</h5>${tableHTML(ans.actual.cols,ans.actual.rows)}</div>`;
+        content += `<div class="your-result fail"><h5>📊 Twój wynik</h5>${tableHTML(ans.actual.cols,ans.actual.rows)}</div>`;
+        content += `<div class="fb-detail">💡 Wskazówka: Sprawdź czy liczba wierszy i wartości są zgodne z oczekiwanymi.</div>`;
       }
-      if(!examMode){
-        content += `<div style="margin-top:.6rem"><button class="tool-btn" onclick="toggle('showSolution')">🔍 Pokaż rozwiązanie</button>${state.showSolution?`<div class="solution-content"><code>${q.primarySolution}</code></div>`:''}</div>`;
-      } else {
-        content += `<div class="fb-detail" style="margin-top:.6rem;color:var(--red)">🔒 Tryb egzaminacyjny - brak podpowiedzi</div>`;
-      }
+      content += `<div style="margin-top:.6rem"><button class="tool-btn" style="background:transparent;border:1px solid var(--yellow);color:var(--yellow);padding:.3rem .8rem;border-radius:6px;cursor:pointer" onclick="toggle('showSolution')">🔍 Pokaż rozwiązanie</button>${state.showSolution?`<div class="solution-content"><code>${q.primarySolution}</code></div>`:''}</div>`;
       feedbackSection = `<div class="feedback fail">${content}</div>`;
     }
   }
   
-  const hintSection = (state.showHint && !examMode) ? `<div class="hint-box">💡 ${q.hint}</div>` : '';
+  const hintSection = state.showHint ? `<div class="hint-box">💡 ${q.hint}</div>` : '';
   const modeBadge = q.mode==='exec' ? '<span class="tag t-agg">⚡ SQL</span>' : '<span class="tag t-where">📝 TEKST</span>';
   const isReadonly = ans && ans.correct;
   
   app.innerHTML = `
-    <div class="mode-switcher">
-      <div class="exam-toggle ${examMode?'active':''}" onclick="toggleExamMode()">
-        <input type="checkbox" id="examToggleCheck" ${examMode?'checked':''} onchange="toggleExamMode()">
-        <label>🎓 Tryb egzaminacyjny (brak podpowiedzi)</label>
-      </div>
-    </div>
     <div class="hdr">
-      <h1>SQL <span class="hl">Testownik PRO</span></h1>
-      <div class="hdr-sub">// ${examMode?'TRYB EGZAMINACYJNY - zero podpowiedzi 🔒':'TRYB NAUKI - wszystko dozwolone 📚'}</div>
+      <h1>SQL <span class="hl">Testownik</span></h1>
+      <div class="hdr-sub">// inteligentne porównanie wyników · akceptuje każdy poprawny SQL</div>
       <div class="set-switcher">
-        <button class="set-btn ${currentSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button>
-        <button class="set-btn ${currentSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button>
+        <button class="set-btn ${currentSet===1?'active':''}" id="btn-set1" onclick="switchSet(1)">Zestaw 1</button>
+        <button class="set-btn ${currentSet===2?'active':''}" id="btn-set2" onclick="switchSet(2)">Zestaw 2</button>
+        <button class="reset-progress" onclick="resetAllProgress()">🗑️ Resetuj postęp</button>
       </div>
     </div>
     <div class="progress-wrap"><div class="progress-meta"><span>Pytanie ${state.current+1} z ${qs.length}</span><span>${correct} ✓ ${wrong} ✗</span></div><div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div></div>
@@ -354,44 +340,20 @@ function render(){
       <div class="q-text">${q.text}</div>
       ${schemaSection}
       ${expectedSection}
-      <div class="editor-wrapper"><textarea class="sql-editor" id="sqlInput" placeholder="SELECT ..." ${isReadonly?'readonly':''} onkeydown="handleKey(event)">${ans ? ans.value : state.userInput}</textarea></div>
+      <textarea class="sql-editor" id="sqlInput" placeholder="SELECT ..." ${isReadonly?'readonly':''} onkeydown="handleKey(event)">${ans ? ans.value : state.userInput}</textarea>
       ${hintSection}
       ${feedbackSection}
       <div class="actions">
-        ${!ans || !ans.correct ? `<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button><button class="btn btn-skip" onclick="skip()">Pomiń</button>${!examMode?`<button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>`:''}${ans && !ans.correct ? `<button class="btn btn-retry" onclick="retryQuestion()">🔄 Spróbuj ponownie</button>` : ''}` : `<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`}
+        ${!ans || !ans.correct ? `<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button><button class="btn btn-skip" onclick="skip()">Pomiń</button><button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>${ans && !ans.correct ? `<button class="btn btn-retry" onclick="retryQuestion()">🔄 Spróbuj ponownie</button>` : ''}` : `<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`}
       </div>
     </div>`;
   
   if(!isReadonly){ const ta=document.getElementById('sqlInput'); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);} }
 }
 
-function toggleExamMode(){
-  examMode = !examMode;
-  const check = document.getElementById('examToggleCheck');
-  if(check) check.checked = examMode;
-  // Resetuj widoczność podpowiedzi
-  state.showHint = false;
-  state.showSolution = false;
-  state.showExpected = false;
-  saveProgress();
-  render();
-}
-
 function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
 function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); }
-
-function resetCurrentSQL(){
-  const ta=document.getElementById('sqlInput');
-  if(ta){ ta.value=''; state.userInput=''; }
-}
-
-function retryQuestion(){
-  const q=getQuestions()[state.current];
-  delete state.answered[q.id];
-  state.showSolution=false;
-  state.userInput='';
-  render();
-}
+function retryQuestion(){ const q=getQuestions()[state.current]; delete state.answered[q.id]; state.showSolution=false; state.userInput=''; render(); }
 
 function check(){
   const ta=document.getElementById('sqlInput');
@@ -416,30 +378,8 @@ function check(){
 function skip(){ const q=getQuestions()[state.current]; state.answered[q.id]={value:'',correct:false,skipped:true}; saveProgress(); next(); }
 function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.showSolution=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} saveProgress(); }
 function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
-
 function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,showSolution:false,userInput:'',done:false,attemptHistory:{}}; saveProgress(); render(); }
-
-function switchSet(n){
-  currentSet=n;
-  document.querySelectorAll('.set-btn').forEach((btn,i)=>{ btn.className='set-btn'+(i+1===n?' active':''); });
-  // Nie restartujemy! Tylko ładujemy zapisane postępy dla tego zestawu
-  const saved = localStorage.getItem('sql_testownik_pro');
-  if(saved){
-    try{
-      const data = JSON.parse(saved);
-      if(data.currentSet === n){
-        state.current = data.state.current;
-        state.answered = data.state.answered;
-        state.done = data.state.done;
-        state.attemptHistory = data.state.attemptHistory || {};
-      } else {
-        // Reset dla nowego zestawu
-        state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
-      }
-    }catch(e){}
-  }
-  render();
-}
+function switchSet(n){ currentSet=n; saveProgress(); restart(); }
 
 window.addEventListener('DOMContentLoaded', ()=>{
   initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}` }).then(SQL=>{
