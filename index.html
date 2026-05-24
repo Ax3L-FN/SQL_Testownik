@@ -18,32 +18,36 @@
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
-
-/* NOISE OVERLAY */
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
-
 .app{max-width:900px;margin:0 auto;padding:2rem 1.2rem 5rem;position:relative;z-index:1}
 
 /* MODE SWITCHER */
 .mode-switcher{display:flex;gap:1rem;margin-bottom:2rem;justify-content:center}
-.mode-btn{font-family:var(--display);font-size:.85rem;font-weight:700;padding:.7rem 1.5rem;border-radius:10px;border:2px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;transition:.2s;letter-spacing:.04em}
+.mode-btn{font-family:var(--display);font-size:.85rem;font-weight:700;padding:.7rem 1.5rem;border-radius:10px;border:2px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;transition:.2s}
 .mode-btn.active{background:linear-gradient(135deg,var(--acc),var(--cyan));border-color:transparent;color:#fff;box-shadow:0 4px 15px rgba(108,99,255,.3)}
 .mode-btn:hover:not(.active){border-color:var(--acc);color:var(--acc2);transform:translateY(-2px)}
 
+/* EXAM MODE TOGGLE */
+.exam-toggle{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;margin-bottom:1rem;display:inline-flex;align-items:center;gap:.5rem;cursor:pointer}
+.exam-toggle input{margin-right:.3rem;cursor:pointer;width:16px;height:16px}
+.exam-toggle label{font-size:.7rem;color:var(--text2);cursor:pointer;font-family:var(--mono)}
+.exam-toggle.active{border-color:var(--red);background:rgba(231,76,60,.1)}
+.exam-toggle.active label{color:var(--red);font-weight:700}
+
 /* HEADER */
 .hdr{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
-.hdr h1{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;letter-spacing:-0.04em;line-height:1.1}
+.hdr h1{font-family:var(--display);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900}
 .hdr h1 .hl{color:var(--acc2)}
 .hdr-sub{font-size:0.72rem;color:var(--text3);margin-top:.6rem;letter-spacing:.12em;text-transform:uppercase}
 .set-switcher{display:flex;gap:.4rem;margin-top:1rem}
-.set-btn{font-family:var(--display);font-size:.65rem;font-weight:700;padding:.4rem .9rem;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:.15s}
+.set-btn{font-family:var(--display);font-size:.65rem;font-weight:700;padding:.4rem .9rem;border-radius:6px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
 .set-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
 
 /* PROGRESS */
 .progress-wrap{margin-bottom:1.5rem}
 .progress-meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text3);margin-bottom:.5rem}
 .progress-track{height:3px;background:var(--border);border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--cyan));transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--cyan));transition:width .5s}
 
 /* STATS */
 .stats{display:flex;gap:.7rem;margin-bottom:1.5rem;flex-wrap:wrap}
@@ -74,24 +78,19 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .sql-editor{width:100%;min-height:100px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;font-family:var(--mono);font-size:.85rem;color:var(--text);resize:vertical;outline:none;line-height:1.6}
 .sql-editor:focus{border-color:var(--acc)}
 .editor-toolbar{display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap}
-.tool-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.7rem;font-family:var(--mono);transition:.15s}
+.tool-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.7rem;font-family:var(--mono)}
 .tool-btn:hover{border-color:var(--acc);color:var(--acc2)}
-
-/* RESULT COMPARE */
-.compare-table{overflow-x:auto;margin-top:.5rem}
-.diff-added{background:rgba(46,204,113,.2);color:var(--green)}
-.diff-removed{background:rgba(231,76,60,.2);color:var(--red)}
-.diff-different{background:rgba(243,156,18,.2);color:var(--yellow)}
 
 /* FEEDBACK */
 .feedback{margin-top:1rem;border-radius:10px;padding:1rem;font-size:.8rem}
 .feedback.ok{background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.22);color:var(--green)}
 .feedback.fail{background:rgba(231,76,60,.07);border:1px solid rgba(231,76,60,.22);color:var(--red)}
 .feedback .fb-label{font-weight:700;margin-bottom:.4rem;display:block}
+.fb-detail{margin-top:.5rem;font-size:.75rem}
 
 /* ACTIONS */
 .actions{display:flex;gap:.7rem;margin-top:1.2rem;flex-wrap:wrap}
-.btn{font-family:var(--display);font-weight:700;font-size:.7rem;border:none;border-radius:8px;padding:.5rem 1.2rem;cursor:pointer;transition:.15s;text-transform:uppercase}
+.btn{font-family:var(--display);font-weight:700;font-size:.7rem;border:none;border-radius:8px;padding:.5rem 1.2rem;cursor:pointer;text-transform:uppercase}
 .btn-primary{background:var(--acc);color:#fff}
 .btn-primary:hover{background:var(--acc2);transform:translateY(-1px)}
 .btn-skip{background:transparent;color:var(--text3);border:1px solid var(--border)}
@@ -122,6 +121,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .loading{text-align:center;padding:3rem}
 .spinner{width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
+.solution-content{background:var(--bg3);padding:.5rem;border-radius:6px;margin-top:.5rem;white-space:pre-wrap;font-size:.7rem}
 @media(max-width:580px){.schema-grid{flex-direction:column}}
 </style>
 </head>
@@ -130,7 +130,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 
 <script>
 // ============================================================
-// KONFIGURACJA - TE SAME PYTANIA CO W ORYGINALE
+// KONFIGURACJA - TE SAME PYTANIA
 // ============================================================
 const SCHEMA_DEFS = {
   KRAJE:{cols:[{name:'id_kraju',type:'INTEGER',pk:true},{name:'nazwa_kraju',type:'TEXT'},{name:'stolica',type:'TEXT'},{name:'kod',type:'CHAR(3)'}]},
@@ -193,20 +193,47 @@ const SET2 = [
   {id:'s2_5',set:2,mode:'exec',text:'Wyświetl filmy, których tytuł zaczyna się od litery „S".',tables:['FILMY'],tags:['where'],hint:"LIKE 'S%'",answer:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul`,primarySolution:`SELECT tytul FROM filmy WHERE tytul LIKE 'S%' ORDER BY tytul;`},
   {id:'s2_6',set:2,mode:'exec',text:'Wyświetl loginy i hasła kont, których hasło zawiera dosłowny znak podkreślenia.',tables:['HASLA_TESTOWE'],tags:['where'],hint:"LIKE '%!_%' ESCAPE '!'",answer:`SELECT login, haslo FROM hasla_testowe WHERE haslo LIKE '%!_%' ESCAPE '!'`,primarySolution:`SELECT login, haslo FROM hasla_testowe WHERE haslo LIKE '%!_%' ESCAPE '!';`},
   {id:'s2_7',set:2,mode:'exec',text:'Policz liczbę filmów, średnią ocenę i sumę budżetów.',tables:['FILMY'],tags:['agg'],hint:"COUNT, AVG, SUM",answer:`SELECT COUNT(*) AS liczba, ROUND(AVG(ocena),2) AS srednia, SUM(budzet_mln) AS suma FROM filmy`,primarySolution:`SELECT COUNT(*) as liczba_filmow, ROUND(AVG(ocena),2) as srednia_ocena, SUM(budzet_mln) as suma_budzetow FROM filmy;`},
-  {id:'s2_8',set:2,mode:'exec',text:'Wyświetl gatunki z co najmniej 2 filmami.',tables:['FILMY'],tags:['group','agg'],hint:"HAVING COUNT(*) >= 2",answer:`SELECT gatunek, COUNT(*) FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY COUNT(*) DESC`,primarySolution:`SELECT gatunek, COUNT(*) as liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY liczba DESC;`}
+  {id:'s2_8',set:2,mode:'exec',text:'Wyświetl gatunki z co najmniej 2 filmami.',tables:['FILMY'],tags:['group','agg'],hint:"HAVING COUNT(*) >= 2",answer:`SELECT gatunek, COUNT(*) FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY COUNT(*) DESC`,primarySolution:`SELECT gatunek, COUNT(*) as liczba FROM filmy GROUP BY gatunek HAVING COUNT(*) >= 2 ORDER BY liczba DESC;`},
+  {id:'s2_9',set:2,mode:'exec',text:'Wyświetl pełne imię i nazwisko każdego kierowcy w kolumnie "Kierowca".',tables:['KIEROWCY'],tags:['text'],hint:"|| konkatenacja",answer:`SELECT first_name || ' ' || family_name AS Kierowca FROM kierowcy ORDER BY family_name`,primarySolution:`SELECT first_name || ' ' || family_name AS Kierowca FROM kierowcy ORDER BY family_name;`},
+  {id:'s2_10',set:2,mode:'exec',text:'Wyświetl tytuły filmów z belgijskich lub hiszpańskich wytwórni.',tables:['FILMY','WYTWORNIE','KRAJE'],tags:['join','where'],hint:"JOIN, IN ('Belgia','Hiszpania')",answer:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul`,primarySolution:`SELECT filmy.tytul FROM filmy JOIN wytwornie ON filmy.wytwornia=wytwornie.wytwornia_id JOIN kraje ON wytwornie.kraj=kraje.id_kraju WHERE kraje.nazwa_kraju IN ('Belgia','Hiszpania') ORDER BY filmy.tytul;`}
 ];
+
 const ALL_QUESTIONS = [...SET1, ...SET2];
 
 // ============================================================
-// WERSJA PRO Z DODATKAMI
+// GŁÓWNA APLIKACJA - WERSJA PRO
 // ============================================================
 let db = null;
-let currentMode = 'classic'; // 'classic' lub 'pro'
+let currentMode = 'pro'; // zawsze pro, ale z przełącznikiem trybu egzaminacyjnego
 let currentSet = 1;
+let examMode = false; // TRYB EGZAMINACYJNY - brak podpowiedzi i rozwiązań
 let state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
-let proState = { examMode:false };
 
 function getQuestions(){ return ALL_QUESTIONS.filter(q=>q.set===currentSet); }
+
+function saveProgress(){
+  const toSave = { currentSet, state:{ current:state.current, answered:state.answered, done:state.done, attemptHistory:state.attemptHistory }, examMode };
+  localStorage.setItem('sql_testownik_pro', JSON.stringify(toSave));
+}
+
+function loadProgress(){
+  const saved = localStorage.getItem('sql_testownik_pro');
+  if(saved){
+    try{
+      const data = JSON.parse(saved);
+      currentSet = data.currentSet;
+      state.current = data.state.current;
+      state.answered = data.state.answered;
+      state.done = data.state.done;
+      state.attemptHistory = data.state.attemptHistory || {};
+      examMode = data.examMode || false;
+      const examToggle = document.getElementById('examToggleCheck');
+      if(examToggle) examToggle.checked = examMode;
+      document.getElementById('btn-set1').className='set-btn'+(currentSet===1?' active':'');
+      document.getElementById('btn-set2').className='set-btn'+(currentSet===2?' active':'');
+    }catch(e){}
+  }
+}
 
 function runQuery(sql){
   try{
@@ -227,33 +254,6 @@ function compareResults(userSQL, answerSQL){
   return {ok:false,actual,expected,mismatch:true};
 }
 
-function formatSQL(sql){
-  let formatted = sql.replace(/SELECT|FROM|WHERE|JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|GROUP BY|ORDER BY|HAVING|LIMIT|AND|OR/gi, match => match.toUpperCase());
-  formatted = formatted.replace(/FROM/gi, '\nFROM').replace(/WHERE/gi, '\nWHERE').replace(/JOIN/gi, '\nJOIN').replace(/INNER JOIN/gi, '\nINNER JOIN').replace(/LEFT JOIN/gi, '\nLEFT JOIN').replace(/GROUP BY/gi, '\nGROUP BY').replace(/ORDER BY/gi, '\nORDER BY').replace(/HAVING/gi, '\nHAVING').replace(/LIMIT/gi, '\nLIMIT').replace(/AND/gi, '\n  AND').replace(/OR/gi, '\n  OR');
-  return formatted;
-}
-
-function saveProgress(){
-  const toSave = { currentSet, state:{ current:state.current, answered:state.answered, done:state.done, attemptHistory:state.attemptHistory } };
-  localStorage.setItem('sql_testownik_pro', JSON.stringify(toSave));
-}
-
-function loadProgress(){
-  const saved = localStorage.getItem('sql_testownik_pro');
-  if(saved){
-    try{
-      const data = JSON.parse(saved);
-      currentSet = data.currentSet;
-      state.current = data.state.current;
-      state.answered = data.state.answered;
-      state.done = data.state.done;
-      state.attemptHistory = data.state.attemptHistory || {};
-      document.getElementById('btn-set1').className='set-btn'+(currentSet===1?' active':'');
-      document.getElementById('btn-set2').className='set-btn'+(currentSet===2?' active':'');
-    }catch(e){}
-  }
-}
-
 function normText(s){ return s.replace(/\s+/g,' ').trim().toLowerCase().replace(/['"]/g,"'").replace(/;$/,''); }
 function checkText(user, solutions){ return solutions.some(s=>normText(s)===normText(user)); }
 
@@ -262,11 +262,11 @@ function schemaHTML(names){
   return names.map(n=>{ const t=SCHEMA_DEFS[n.toUpperCase()]; if(!t) return ''; return `<div><div class="s-tbl-name">${n}</div>${t.cols.map(c=>`<div class="s-col"><span class="cn">${c.name}</span><span style="color:var(--text3)"> · ${c.type}</span></div>`).join('')}</div>`; }).join('');
 }
 
-function tableHTML(cols,rows,highlightExpected=null){
+function tableHTML(cols,rows){
   if(!cols||!cols.length) return '<em style="color:var(--text3)">Brak wyników</em>';
   const header=cols.map(c=>`<th>${c}</th>`).join('');
-  const body=rows.map((r,ri)=>`<tr>${r.map((v,ci)=>`<td class="${highlightExpected && highlightExpected[ri] && highlightExpected[ri][ci] ? 'diff-different' : ''}">${v===null?'NULL':v}</td>`).join('')}</tr>`).join('');
-  return `<div class="compare-table"><table class="result-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const body=rows.map(r=>`<tr>${r.map(v=>`<td>${v===null?'NULL':v}</td>`).join('')}</tr>`).join('');
+  return `<div style="overflow-x:auto"><table class="result-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 const TAG_MAP={join:'t-join',where:'t-where',order:'t-order',group:'t-group',agg:'t-agg',left:'t-left'};
@@ -279,8 +279,18 @@ function render(){
   if(state.done){
     const correct = Object.values(state.answered).filter(a=>a.correct).length;
     const totalAttempts = Object.values(state.attemptHistory).reduce((a,b)=>a+b,0);
-    app.innerHTML = `<div class="mode-switcher"><button class="mode-btn ${currentMode==='classic'?'active':''}" onclick="switchMode('classic')">📘 Tryb Klasyczny</button><button class="mode-btn ${currentMode==='pro'?'active':''}" onclick="switchMode('pro')">🚀 Tryb PRO</button></div>
-      <div class="hdr"><h1>SQL <span class="hl">Testownik</span> <span style="font-size:.8rem;background:var(--acc2);padding:.2rem .5rem;border-radius:20px">${currentMode.toUpperCase()}</span></h1><div class="hdr-sub">// zakończono</div></div>
+    app.innerHTML = `
+      <div class="mode-switcher">
+        <div class="exam-toggle ${examMode?'active':''}" onclick="toggleExamMode()">
+          <input type="checkbox" id="examToggleCheck" ${examMode?'checked':''} onchange="toggleExamMode()">
+          <label>🎓 Tryb egzaminacyjny (brak podpowiedzi)</label>
+        </div>
+      </div>
+      <div class="hdr"><h1>SQL <span class="hl">Testownik PRO</span></h1><div class="hdr-sub">// ${examMode?'TRYB EGZAMINACYJNY 🔒':'TRYB NAUKI 📚'}</div></div>
+      <div class="set-switcher" style="margin-top:1rem">
+        <button class="set-btn ${currentSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button>
+        <button class="set-btn ${currentSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button>
+      </div>
       <div class="summary"><h2>🎉 Gotowe!</h2><span class="score-big">${correct}/${qs.length}</span><p class="summary-msg">${Math.round(correct/qs.length*100)}% poprawnych</p><p class="summary-detail">Łącznie prób: ${totalAttempts}</p><button class="btn-restart" onclick="restart()">Zacznij od nowa</button></div>`;
     return;
   }
@@ -292,11 +302,11 @@ function render(){
   const wrong = Object.values(state.answered).filter(a=>!a.correct).length;
   const attempts = state.attemptHistory[q.id] || 0;
   
-  const dots = qs.map((qq,i)=>{ const a=state.answered[qq.id]; const cls=a?(a.correct?'ok':'fail'):(i===state.current?'current':''); return `<div class="dot ${cls}" onclick="jumpTo(${i})"></div>`; }).join('');
+  const dots = qs.map((qq,i)=>{ const a=state.answered[qq.id]; const cls=a?(a.correct?'ok':'fail'):(i===state.current?'current':''); return `<div class="dot ${cls}" onclick="jumpTo(${i})" title="Pytanie ${i+1}"></div>`; }).join('');
   
   const schemaSection = q.tables.length ? `<button class="schema-btn" onclick="toggle('showSchema')">${state.showSchema?'▲ Ukryj schemat':'▼ Schemat tabel'}</button>${state.showSchema?`<div class="schema"><div class="schema-grid">${schemaHTML(q.tables)}</div></div>`:''}` : '';
   
-  const expectedSection = (q.mode==='exec' && db && !proState.examMode) ? `<button class="expected-btn" onclick="toggle('showExpected')">${state.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}</button>${state.showExpected?`<div class="expected-box"><h5>Oczekiwany wynik</h5>${tableHTML(runQuery(q.answer).cols,runQuery(q.answer).rows)}</div>`:''}` : '';
+  const expectedSection = (q.mode==='exec' && db && !examMode) ? `<button class="expected-btn" onclick="toggle('showExpected')">${state.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}</button>${state.showExpected?`<div class="expected-box"><h5>Oczekiwany wynik</h5>${tableHTML(runQuery(q.answer).cols,runQuery(q.answer).rows)}</div>`:''}` : '';
   
   let feedbackSection = '';
   if(ans){
@@ -307,29 +317,30 @@ function render(){
       if(ans.error) content += `<div class="fb-detail">Błąd SQL: <code>${ans.error}</code></div>`;
       else if(ans.mismatch && ans.actual){
         content += `<div class="your-result fail"><h5>Twój wynik</h5>${tableHTML(ans.actual.cols,ans.actual.rows)}</div>`;
-        content += `<div style="margin-top:.5rem"><button class="tool-btn" onclick="showDiff()">🔍 Pokaż różnice</button></div>`;
       }
-      if(!proState.examMode){
-        content += `<div style="margin-top:.6rem"><button class="tool-btn" onclick="toggle('showSolution')">🔍 Pokaż rozwiązanie</button>${state.showSolution?`<div class="solution-content" style="margin-top:.5rem;background:var(--bg3);padding:.5rem;border-radius:6px"><code>${q.primarySolution}</code></div>`:''}</div>`;
+      if(!examMode){
+        content += `<div style="margin-top:.6rem"><button class="tool-btn" onclick="toggle('showSolution')">🔍 Pokaż rozwiązanie</button>${state.showSolution?`<div class="solution-content"><code>${q.primarySolution}</code></div>`:''}</div>`;
+      } else {
+        content += `<div class="fb-detail" style="margin-top:.6rem;color:var(--red)">🔒 Tryb egzaminacyjny - brak podpowiedzi</div>`;
       }
       feedbackSection = `<div class="feedback fail">${content}</div>`;
     }
   }
   
-  const hintSection = (state.showHint && !proState.examMode) ? `<div class="hint-box">💡 ${q.hint}</div>` : '';
+  const hintSection = (state.showHint && !examMode) ? `<div class="hint-box">💡 ${q.hint}</div>` : '';
   const modeBadge = q.mode==='exec' ? '<span class="tag t-agg">⚡ SQL</span>' : '<span class="tag t-where">📝 TEKST</span>';
   const isReadonly = ans && ans.correct;
   
-  const editorToolbar = (currentMode==='pro' && !isReadonly) ? `<div class="editor-toolbar"><button class="tool-btn" onclick="formatCurrentSQL()">✨ Formatuj SQL</button><button class="tool-btn" onclick="resetCurrentSQL()">⟳ Resetuj</button></div>` : '';
-  
   app.innerHTML = `
     <div class="mode-switcher">
-      <button class="mode-btn ${currentMode==='classic'?'active':''}" onclick="switchMode('classic')">📘 Tryb Klasyczny</button>
-      <button class="mode-btn ${currentMode==='pro'?'active':''}" onclick="switchMode('pro')">🚀 Tryb PRO</button>
+      <div class="exam-toggle ${examMode?'active':''}" onclick="toggleExamMode()">
+        <input type="checkbox" id="examToggleCheck" ${examMode?'checked':''} onchange="toggleExamMode()">
+        <label>🎓 Tryb egzaminacyjny (brak podpowiedzi)</label>
+      </div>
     </div>
     <div class="hdr">
-      <h1>SQL <span class="hl">Testownik</span> <span style="font-size:.8rem;background:var(--acc2);padding:.2rem .5rem;border-radius:20px">${currentMode.toUpperCase()}</span></h1>
-      <div class="hdr-sub">// bazy danych · kwerendy · sqlite</div>
+      <h1>SQL <span class="hl">Testownik PRO</span></h1>
+      <div class="hdr-sub">// ${examMode?'TRYB EGZAMINACYJNY - zero podpowiedzi 🔒':'TRYB NAUKI - wszystko dozwolone 📚'}</div>
       <div class="set-switcher">
         <button class="set-btn ${currentSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button>
         <button class="set-btn ${currentSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button>
@@ -343,26 +354,31 @@ function render(){
       <div class="q-text">${q.text}</div>
       ${schemaSection}
       ${expectedSection}
-      ${editorToolbar}
       <div class="editor-wrapper"><textarea class="sql-editor" id="sqlInput" placeholder="SELECT ..." ${isReadonly?'readonly':''} onkeydown="handleKey(event)">${ans ? ans.value : state.userInput}</textarea></div>
       ${hintSection}
       ${feedbackSection}
       <div class="actions">
-        ${!ans || !ans.correct ? `<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button><button class="btn btn-skip" onclick="skip()">Pomiń</button><button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>${ans && !ans.correct ? `<button class="btn btn-retry" onclick="retryQuestion()">🔄 Spróbuj ponownie</button>` : ''}` : `<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`}
+        ${!ans || !ans.correct ? `<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button><button class="btn btn-skip" onclick="skip()">Pomiń</button>${!examMode?`<button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>`:''}${ans && !ans.correct ? `<button class="btn btn-retry" onclick="retryQuestion()">🔄 Spróbuj ponownie</button>` : ''}` : `<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`}
       </div>
     </div>`;
   
   if(!isReadonly){ const ta=document.getElementById('sqlInput'); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);} }
 }
 
-function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
-function toggleSolution(){ state.showSolution=!state.showSolution; render(); }
-function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); }
-
-function formatCurrentSQL(){
-  const ta=document.getElementById('sqlInput');
-  if(ta){ ta.value = formatSQL(ta.value); state.userInput=ta.value; }
+function toggleExamMode(){
+  examMode = !examMode;
+  const check = document.getElementById('examToggleCheck');
+  if(check) check.checked = examMode;
+  // Resetuj widoczność podpowiedzi
+  state.showHint = false;
+  state.showSolution = false;
+  state.showExpected = false;
+  saveProgress();
+  render();
 }
+
+function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
+function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); }
 
 function resetCurrentSQL(){
   const ta=document.getElementById('sqlInput');
@@ -397,22 +413,33 @@ function check(){
   render();
 }
 
-function showDiff(){
-  const q=getQuestions()[state.current];
-  const ans=state.answered[q.id];
-  if(ans && ans.mismatch && ans.actual){
-    const expected=runQuery(q.answer);
-    alert(`Różnice:\n- Twoje wiersze: ${ans.actual.rows.length}\n- Oczekiwane: ${expected.rows.length}\nSprawdź dokładnie dane!`);
-  }
-}
-
 function skip(){ const q=getQuestions()[state.current]; state.answered[q.id]={value:'',correct:false,skipped:true}; saveProgress(); next(); }
 function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.showSolution=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} saveProgress(); }
 function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
 
 function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,showSolution:false,userInput:'',done:false,attemptHistory:{}}; saveProgress(); render(); }
-function switchSet(n){ currentSet=n; document.querySelectorAll('.set-btn').forEach((btn,i)=>{ btn.className='set-btn'+(i+1===n?' active':''); }); restart(); }
-function switchMode(mode){ currentMode=mode; proState.examMode=false; restart(); }
+
+function switchSet(n){
+  currentSet=n;
+  document.querySelectorAll('.set-btn').forEach((btn,i)=>{ btn.className='set-btn'+(i+1===n?' active':''); });
+  // Nie restartujemy! Tylko ładujemy zapisane postępy dla tego zestawu
+  const saved = localStorage.getItem('sql_testownik_pro');
+  if(saved){
+    try{
+      const data = JSON.parse(saved);
+      if(data.currentSet === n){
+        state.current = data.state.current;
+        state.answered = data.state.answered;
+        state.done = data.state.done;
+        state.attemptHistory = data.state.attemptHistory || {};
+      } else {
+        // Reset dla nowego zestawu
+        state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false, attemptHistory:{} };
+      }
+    }catch(e){}
+  }
+  render();
+}
 
 window.addEventListener('DOMContentLoaded', ()=>{
   initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}` }).then(SQL=>{
