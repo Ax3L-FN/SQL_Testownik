@@ -112,6 +112,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .feedback .fb-label{font-weight:700;font-size:.85rem;margin-bottom:.4rem;display:block;font-family:var(--display);letter-spacing:.02em}
 .feedback .fb-detail{color:var(--text2);margin-top:.5rem;font-size:.76rem}
 .feedback .fb-detail code{color:var(--text);background:var(--bg3);padding:.1rem .3rem;border-radius:3px}
+.solution-toggle{background:transparent;border:1px solid var(--yellow);color:var(--yellow);border-radius:6px;padding:.3rem .8rem;cursor:pointer;font-size:.7rem;margin-top:.6rem;font-family:var(--mono);transition:.15s}
+.solution-toggle:hover{background:rgba(243,156,18,.1)}
+.solution-content{background:var(--bg3);border-radius:8px;padding:.8rem;margin-top:.5rem;font-size:.78rem;overflow-x:auto}
 
 /* YOUR RESULT TABLE */
 .your-result{margin-top:.8rem}
@@ -130,6 +133,8 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .btn-hint:hover{color:var(--yellow)}
 .btn-next{background:var(--acc);color:#fff}
 .btn-next:hover{background:var(--acc2)}
+.btn-retry{background:transparent;color:var(--yellow);border:1px solid var(--yellow);font-size:.68rem}
+.btn-retry:hover{background:rgba(243,156,18,.1)}
 
 /* SUMMARY */
 .summary{text-align:center;padding:3rem 1rem}
@@ -483,7 +488,7 @@ const ALL_QUESTIONS = [...SET1, ...SET2];
 // ─── STATE ──────────────────────────────────────────────────────────
 let db = null;
 let currentSet = 1;
-let state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, userInput:'', done:false };
+let state = { current:0, answered:{}, showSchema:false, showExpected:false, showHint:false, showSolution:false, userInput:'', done:false };
 
 function getQuestions(){ return ALL_QUESTIONS.filter(q=>q.set===currentSet); }
 
@@ -595,13 +600,23 @@ function render(){
       } else if(ans.mismatch && ans.result){
         content+=`<div class="your-result fail"><h5>Twój wynik (${ans.result.rows.length} wierszy)</h5>${tableHTML(ans.result.cols,ans.result.rows)}</div>`;
       }
-      content+=`<div class="fb-detail" style="margin-top:.6rem">Przykładowe rozwiązanie:<br><code style="white-space:pre;display:block;margin-top:.3rem;line-height:1.6">${q.primarySolution.replace(/</g,'&lt;')}</code></div>`;
+      
+      // Zakryte rozwiązanie - przycisk do pokazania
+      content+=`<div class="fb-detail" style="margin-top:.6rem">
+        <button class="solution-toggle" onclick="toggleSolution()">🔍 Pokaż przykładowe rozwiązanie</button>
+        ${state.showSolution ? `<div class="solution-content"><code style="white-space:pre;display:block;line-height:1.6">${q.primarySolution.replace(/</g,'&lt;')}</code></div>` : ''}
+      </div>`;
+      
       feedbackSection=`<div class="feedback fail">${content}</div>`;
     }
   }
 
   const hintSection=state.showHint?`<div class="hint-box">💡 ${q.hint}</div>`:'';
   const modeBadge=q.mode==='exec'?'<span class="tag t-agg" style="font-size:.6rem">⚡ WYKONYWALNE</span>':'<span class="tag t-where" style="font-size:.6rem">📝 TEKSTOWE</span>';
+
+  // Edytor: tylko czyta jeśli odpowiedź jest poprawna, ale jeśli błędna - można edytować
+  const isReadonly = ans && ans.correct;
+  const editorClass = ans ? (ans.correct ? 'ok' : 'fail') : '';
 
   root.innerHTML=`
     <div class="progress-wrap">
@@ -624,28 +639,37 @@ function render(){
       ${schemaSection}
       ${expectedSection}
       <div class="editor-label">Twoje zapytanie SQL <span style="color:var(--text3);font-size:.6rem">Ctrl+Enter = sprawdź</span></div>
-      <textarea class="sql-editor${ans?(ans.correct?' ok':' fail'):''}" id="sqlInput"
+      <textarea class="sql-editor ${editorClass}" id="sqlInput"
         placeholder="SELECT ..."
-        ${ans?'readonly':''}
-        onkeydown="handleKey(event)">${ans?ans.value:state.userInput}</textarea>
+        ${isReadonly ? 'readonly' : ''}
+        onkeydown="handleKey(event)">${ans ? ans.value : state.userInput}</textarea>
       ${hintSection}
       ${feedbackSection}
       <div class="actions">
-        ${!ans
+        ${!ans || !ans.correct
           ?`<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button>
             <button class="btn btn-skip" onclick="skip()">Pomiń →</button>
-            <button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>`
+            <button class="btn-hint" onclick="toggle('showHint')">💡 podpowiedź</button>
+            ${ans && !ans.correct ? `<button class="btn btn-retry" onclick="retryQuestion()">🔄 Spróbuj ponownie</button>` : ''}`
           :`<button class="btn btn-next" onclick="next()">${state.current<qs.length-1?'Następne →':'Zobacz wyniki →'}</button>`
         }
       </div>
     </div>`;
 
-  if(!ans){ const ta=document.getElementById('sqlInput'); if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);} }
+  if(!ans || !ans.correct){ const ta=document.getElementById('sqlInput'); if(ta && !isReadonly){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);} }
 }
 
 // ─── ACTIONS ────────────────────────────────────────────────────────
 function toggle(key){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state[key]=!state[key]; render(); }
-function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; render(); }
+function toggleSolution(){ state.showSolution=!state.showSolution; render(); }
+function jumpTo(i){ const ta=document.getElementById('sqlInput'); if(ta) state.userInput=ta.value; state.current=i; state.showSchema=false; state.showExpected=false; state.showHint=false; state.showSolution=false; render(); }
+function retryQuestion(){ 
+  const q=getQuestions()[state.current];
+  delete state.answered[q.id];
+  state.showSolution=false;
+  state.userInput='';
+  render();
+}
 
 function check(){
   const ta=document.getElementById('sqlInput');
@@ -665,13 +689,14 @@ function check(){
     }
   }
   state.showHint=false;
+  state.showSolution=false;
   render();
 }
 
 function skip(){ const q=getQuestions()[state.current]; state.answered[q.id]={value:'',correct:false,skipped:true}; next(); }
-function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} }
+function next(){ state.showHint=false;state.showExpected=false;state.showSchema=false;state.showSolution=false;state.userInput=''; const qs=getQuestions(); if(state.current<qs.length-1){state.current++;render();}else{state.done=true;render();} }
 function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
-function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,userInput:'',done:false}; render(); }
+function restart(){ state={current:0,answered:{},showSchema:false,showExpected:false,showHint:false,showSolution:false,userInput:'',done:false}; render(); }
 
 function switchSet(n){
   currentSet=n;
