@@ -448,32 +448,37 @@ function qs(){ return Q.filter(q=>q.s===curSet); }
 
 // ─── PERSISTENCE ─────────────────────────────────────────────────────
 function save(){
-  try{ localStorage.setItem('sqlt2', JSON.stringify({curSet,S:{cur:S.cur,answered:S.answered,attempts:S.attempts,done:S.done}})); }catch(e){}
-}
-
-function switchSet(n){
-  if(n === curSet) return;
-  save();  // Zapisuje stan bieżącego zestawu
-  curSet = n;
-  load(); // Ładuje stan nowego zestawu
-  // ...
+  try{ 
+    localStorage.setItem('sqlt2', JSON.stringify({
+      curSet: curSet,
+      S: {
+        cur: S.cur,
+        answered: S.answered,
+        attempts: S.attempts,
+        done: S.done
+      }
+    })); 
+    console.log('✅ Zapisano postęp:', {curSet, answeredCount: Object.keys(S.answered).length});
+  } catch(e){ console.error('Błąd zapisu:', e); }
 }
 
 function load(){
   try{
     const d = JSON.parse(localStorage.getItem('sqlt2')||'null');
     if(!d) return;
-    curSet = d.curSet||1;
-    S.cur = d.S.cur||0;
-    S.answered = d.S.answered||{};
-    S.attempts = d.S.attempts||{};
-    S.done = d.S.done||false;
-  }catch(e){}
+    curSet = d.curSet || 1;
+    S.cur = d.S?.cur || 0;
+    S.answered = d.S?.answered || {};
+    S.attempts = d.S?.attempts || {};
+    S.done = d.S?.done || false;
+    console.log('📀 Wczytano postęp:', {curSet, answeredCount: Object.keys(S.answered).length});
+  } catch(e){ console.error('Błąd wczytywania:', e); }
 }
+
 function resetAll(){
   if(!confirm('Zresetować cały postęp?')) return;
   localStorage.removeItem('sqlt2');
-  S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false};
+  S = {cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false};
   render();
 }
 
@@ -636,33 +641,99 @@ function render(){
 
 // ─── ACTIONS ────────────────────────────────────────────────────────
 function tog(k){ const ed=document.getElementById('ed'); if(ed) S.input=ed.value; S[k]=!S[k]; render(); }
-function jumpTo(i){ const ed=document.getElementById('ed'); if(ed) S.input=ed.value; S.cur=i; S.showSchema=false;S.showExpected=false;S.showHint=false;S.showSol=false; render(); save(); }
+function jumpTo(i){
+  const ta = document.getElementById('sqlInput');
+  if(ta) S.input = ta.value;
+  S.cur = i;
+  S.showSchema = false;
+  S.showExpected = false;
+  S.showHint = false;
+  S.showSol = false;
+  save();  
+  render();
+}
 function retry(){ const q=qs()[S.cur]; delete S.answered[q.id]; S.showSol=false; S.input=''; render(); }
 
 function check(){
-  const ed=document.getElementById('ed');
-  const val=ed?ed.value.trim():''; if(!val) return;
-  const q=qs()[S.cur];
-  S.attempts[q.id]=(S.attempts[q.id]||0)+1;
-
+  const val = document.getElementById('sqlInput')?.value.trim();
+  if(!val) return;
+  const q = getQuestions()[S.cur];
+  S.attempts[q.id] = (S.attempts[q.id]||0)+1;
+  
   if(q.mode==='text'){
-    const ok=checkText(val,q.kws);
-    S.answered[q.id]={ok,val};
+    S.answered[q.id] = {val, correct: checkText(val, q.solutions)};
   } else {
-    const r=compare(val,q.ans);
-    if(r.ok) S.answered[q.id]={ok:true,val,actual:r.actual};
-    else if(r.mismatch) S.answered[q.id]={ok:false,val,actual:r.actual};
-    else S.answered[q.id]={ok:false,val,err:r.err};
+    const res = compareResults(val, q.answer);
+    if(res.ok) S.answered[q.id] = {val, correct: true, result: res.actual};
+    else if(res.mismatch) S.answered[q.id] = {val, correct: false, mismatch: true, actual: res.actual};
+    else S.answered[q.id] = {val, correct: false, error: res.error};
   }
-  S.showSol=false;
-  save(); render();
+  
+  save();  
+  render();
 }
 
-function skip(){ const q=qs()[S.cur]; S.answered[q.id]={ok:false,val:'',skipped:true}; save(); next(); }
-function next(){ S.showHint=false;S.showExpected=false;S.showSchema=false;S.showSol=false;S.input=''; const l=qs(); if(S.cur<l.length-1){S.cur++;render();}else{S.done=true;render();} save(); }
+function skip(){
+  const q = getQuestions()[S.cur];
+  S.answered[q.id] = {val: '', correct: false, skipped: true};
+  save();  
+  next();
+}
+function next(){
+  S.showHint = false;
+  S.showExpected = false;
+  S.showSchema = false;
+  S.showSol = false;
+  S.input = '';
+  const qs = getQuestions();
+  if(S.cur < qs.length-1){
+    S.cur++;
+    render();
+  } else {
+    S.done = true;
+    render();
+  }
+  save();  
+}
 function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
-function restart(){ S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false}; save(); render(); }
-function switchSet(n){ curSet=n; S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false}; save(); render(); }
+function restart(){
+  S = {cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false};
+  save();  
+  render();
+}
+  
+function switchSet(n){
+  if(n === curSet) return;
+  
+  // ZAPISZ bieżący zestaw przed zmianą
+  save();
+  
+  curSet = n;
+  
+  // Odśwież przyciski
+  document.querySelectorAll('.set-btn').forEach((btn,i)=>{
+    btn.className = 'set-btn' + ((i+1) === n ? ' active' : '');
+  });
+  
+  // Załaduj stan nowego zestawu
+  load();
+  
+  // Resetuj widoczność elementów UI
+  S.showSchema = false;
+  S.showExpected = false;
+  S.showHint = false;
+  S.showSol = false;
+  S.input = '';
+  
+  // Walidacja indeksu
+  const qs = getQuestions();
+  if(S.cur >= qs.length || S.done) {
+    S.cur = 0;
+    S.done = false;
+  }
+  
+  render();
+}
 
 // ─── INIT ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
