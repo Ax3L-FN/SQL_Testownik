@@ -450,6 +450,15 @@ function qs(){ return Q.filter(q=>q.s===curSet); }
 function save(){
   try{ localStorage.setItem('sqlt2', JSON.stringify({curSet,S:{cur:S.cur,answered:S.answered,attempts:S.attempts,done:S.done}})); }catch(e){}
 }
+
+function switchSet(n){
+  if(n === curSet) return;
+  save();  // Zapisuje stan bieżącego zestawu
+  curSet = n;
+  load(); // Ładuje stan nowego zestawu
+  // ...
+}
+
 function load(){
   try{
     const d = JSON.parse(localStorage.getItem('sqlt2')||'null');
