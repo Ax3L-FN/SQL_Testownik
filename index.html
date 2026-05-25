@@ -516,7 +516,7 @@ function render(){
     const totalTries = Object.values(S.attempts).reduce((a,b)=>a+b,0);
     const pct = Math.round(ok/list.length*100);
     app.innerHTML=`
-      <div class="hdr"><div class="hdr-row"><div><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// bazy danych · sqlite</div></div></div>
+      <div class="hdr"><div class="hdr-row"><div><h1>SQL <span class="hl">w Pigułce</span></h1><div class="hdr-sub">// bazy danych · sqlite</div></div></div>
         <div class="set-switcher"><button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button><button class="set-btn ${curSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button><button class="btn-reset-all" onclick="resetAll()">Resetuj postęp</button></div>
       </div>
       <div class="summary">
@@ -578,7 +578,7 @@ function render(){
   app.innerHTML=`
     <div class="hdr">
       <div class="hdr-row">
-        <div><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// Od CBE Dla CBE </div></div>
+        <div><h1>SQL <span class="hl">w Pigułce</span></h1><div class="hdr-sub">// Od CBE Dla CBE </div></div>
       </div>
       <div class="set-switcher">
         <button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1 (13)</button>
