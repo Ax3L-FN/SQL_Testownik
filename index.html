@@ -442,617 +442,218 @@ const Q = [
 // ─── STATE ───────────────────────────────────────────────────────────
 let db = null;
 let curSet = 1;
+let S = { cur:0, answered:{}, attempts:{}, showSchema:false, showExpected:false, showHint:false, showSol:false, input:'', done:false };
 
-// osobny stan dla każdego zestawu
-let stateBySet = {
-1: {
-cur:0,
-answered:{},
-attempts:{},
-done:false
-},
-2: {
-cur:0,
-answered:{},
-attempts:{},
-done:false
-}
-};
-
-// stan UI wspólny
-let UI = {
-showSchema:false,
-showExpected:false,
-showHint:false,
-showSol:false,
-input:''
-};
-
-function getState(){
-return stateBySet[curSet];
-}
-
-function qs(){
-return Q.filter(q=>q.s===curSet);
-}
+function qs(){ return Q.filter(q=>q.s===curSet); }
 
 // ─── PERSISTENCE ─────────────────────────────────────────────────────
 function save(){
-try{
-localStorage.setItem('sqlt2', JSON.stringify({
-curSet,
-stateBySet
-}));
-}catch(e){}
+  try{ localStorage.setItem('sqlt2', JSON.stringify({curSet,S:{cur:S.cur,answered:S.answered,attempts:S.attempts,done:S.done}})); }catch(e){}
 }
-
 function load(){
-try{
-const d = JSON.parse(localStorage.getItem('sqlt2') || 'null');
-
-```
-if(!d) return;
-
-curSet = d.curSet || 1;
-
-if(d.stateBySet){
-  stateBySet = d.stateBySet;
+  try{
+    const d = JSON.parse(localStorage.getItem('sqlt2')||'null');
+    if(!d) return;
+    curSet = d.curSet||1;
+    S.cur = d.S.cur||0;
+    S.answered = d.S.answered||{};
+    S.attempts = d.S.attempts||{};
+    S.done = d.S.done||false;
+  }catch(e){}
 }
-```
-
-}catch(e){}
-}
-
 function resetAll(){
-if(!confirm('Zresetować cały postęp?')) return;
-
-localStorage.removeItem('sqlt2');
-
-stateBySet = {
-1:{cur:0,answered:{},attempts:{},done:false},
-2:{cur:0,answered:{},attempts:{},done:false}
-};
-
-UI = {
-showSchema:false,
-showExpected:false,
-showHint:false,
-showSol:false,
-input:''
-};
-
-curSet = 1;
-
-render();
+  if(!confirm('Zresetować cały postęp?')) return;
+  localStorage.removeItem('sqlt2');
+  S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false};
+  render();
 }
+
+// ─── SQL UTILS ───────────────────────────────────────────────────────
+function runQ(sql){
+  try{
+    const r = db.exec(sql);
+    if(!r.length) return {ok:true,cols:[],rows:[]};
+    return {ok:true,cols:r[0].columns,rows:r[0].values};
+  }catch(e){ return {ok:false,err:e.message}; }
+}
+
+// Porównuje tylko wartości (nie nazwy kolumn) — liczy się wynik, nie forma zapytania
+function compare(userSql, refSql){
+  const ref = runQ(refSql);
+  if(!ref.ok) return {ok:false,err:'Błąd wzorca: '+ref.err};
+  const usr = runQ(userSql);
+  if(!usr.ok) return {ok:false,err:usr.err};
+  const norm = rows => JSON.stringify(rows.map(r=>r.map(v=>v===null?null:String(v).trim())));
+  if(norm(usr.rows)===norm(ref.rows)) return {ok:true,actual:usr,expected:ref};
+  return {ok:false,mismatch:true,actual:usr,expected:ref};
+}
+
+function checkText(val, kws){ return kws.includes(val.trim().toLowerCase().replace(/;$/,'').trim()); }
+
+// ─── RENDER HELPERS ──────────────────────────────────────────────────
+function schemaHTML(names){
+  return names.map(n=>{
+    const t=SCHEMA[n.toUpperCase()]; if(!t) return '';
+    return `<div class="s-tbl"><div class="s-tbl-name">${n}</div>${t.cols.map(c=>`<div class="s-col"><span class="cn">${c.n}</span> <span style="color:var(--text3)">${c.t}</span>${c.pk?'<span class="pk">PK</span>':''}${c.fk?`<span class="fk">FK→${c.fk}</span>`:''}</div>`).join('')}</div>`;
+  }).join('');
+}
+
+function tblHTML(cols,rows){
+  if(!cols||!cols.length) return '<em style="color:var(--text3);font-size:.72rem">Brak wyników</em>';
+  return `<div class="result-wrap"><table class="result-table"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v===null?'<span class="null-val">NULL</span>':v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+const TAGS={join:'t-join',where:'t-where',order:'t-order',group:'t-group',agg:'t-agg',limit:'t-limit',left:'t-left',text:'t-text',case:'t-case',set:'t-set',trans:'t-trans',kw:'t-kw'};
+function tagsHTML(tags){ return tags.map(t=>`<span class="tag ${TAGS[t]||'t-where'}">${t.toUpperCase()}</span>`).join(''); }
 
 // ─── MAIN RENDER ────────────────────────────────────────────────────
 function render(){
+  const app = document.getElementById('app');
+  const list = qs();
 
-const S = getState();
-
-const app = document.getElementById('app');
-const list = qs();
-
-if(S.done){
-const ok = Object.values(S.answered).filter(a=>a&&a.ok).length;
-const totalTries = Object.values(S.attempts).reduce((a,b)=>a+b,0);
-const pct = Math.round(ok/list.length*100);
-
-```
-app.innerHTML=`
-  <div class="hdr">
-    <div class="hdr-row">
-      <div>
-        <h1>SQL <span class="hl">Testownik</span></h1>
-        <div class="hdr-sub">// bazy danych · sqlite</div>
+  if(S.done){
+    const ok = Object.values(S.answered).filter(a=>a&&a.ok).length;
+    const totalTries = Object.values(S.attempts).reduce((a,b)=>a+b,0);
+    const pct = Math.round(ok/list.length*100);
+    app.innerHTML=`
+      <div class="hdr"><div class="hdr-row"><div><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// bazy danych · sqlite</div></div></div>
+        <div class="set-switcher"><button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button><button class="set-btn ${curSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button><button class="btn-reset-all" onclick="resetAll()">Resetuj postęp</button></div>
       </div>
-    </div>
-
-    <div class="set-switcher">
-      <button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1</button>
-      <button class="set-btn ${curSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2</button>
-      <button class="btn-reset-all" onclick="resetAll()">Resetuj postęp</button>
-    </div>
-  </div>
-
-  <div class="summary">
-    <h2>🎉 Gotowe!</h2>
-    <span class="score-big">${ok}/${list.length}</span>
-    <p class="sum-msg">${pct}% poprawnych</p>
-    <p class="sum-detail">Łącznie prób: ${totalTries}</p>
-    <button class="btn-restart" onclick="restart()">Zacznij od nowa</button>
-  </div>
-`;
-
-return;
-```
-
-}
-
-const q = list[S.cur];
-const ans = S.answered[q.id];
-
-const prog = (S.cur/list.length)*100;
-
-const okCount = Object.values(S.answered).filter(a=>a&&a.ok).length;
-const failCount = Object.values(S.answered).filter(a=>a&&!a.ok).length;
-
-const tries = S.attempts[q.id]||0;
-
-const dots = list.map((qq,i)=>{
-const a=S.answered[qq.id];
-
-```
-const cls=a
-  ?(a.ok?'ok':'fail')
-  :(i===S.cur?'current':'');
-
-return `<div class="dot ${cls}" onclick="jumpTo(${i})" title="Pyt. ${i+1}"></div>`;
-```
-
-}).join('');
-
-const schemaSection = q.tbls.length ? ` <div class="toggle-row"> <button class="tgl-btn" onclick="tog('showSchema')">
-${UI.showSchema?'▲ Ukryj schemat':'▼ Schemat tabel'} </button>
-
-```
-  ${q.mode==='exec'
-    ?`<button class="tgl-btn" onclick="tog('showExpected')">
-        ${UI.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}
-      </button>`
-    :''
-  }
-</div>
-
-${UI.showSchema
-  ?`<div class="schema-box">
-      <div class="schema-grid">
-        ${schemaHTML(q.tbls)}
-      </div>
-    </div>`
-  :''
-}
-
-${UI.showExpected && q.mode==='exec'
-  ?`<div class="expected-box">
-      <h5>Oczekiwany wynik</h5>
-      ${tblHTML(runQ(q.ans).cols,runQ(q.ans).rows)}
-    </div>`
-  :''
-}
-```
-
-` : '';
-
-let fb='';
-
-if(ans){
-
-```
-if(ans.ok){
-
-  fb=`
-    <div class="feedback ok">
-      <span class="fb-label">
-        ✓ Poprawnie! (próba ${tries})
-      </span>
-
-      ${ans.actual
-        ?`<div class="your-result ok">
-            <h5>Twój wynik</h5>
-            ${tblHTML(ans.actual.cols,ans.actual.rows)}
-          </div>`
-        :''
-      }
-    </div>
-  `;
-
-} else {
-
-  let inner=`
-    <span class="fb-label">
-      ✗ Niepoprawnie (próba ${tries})
-    </span>
-  `;
-
-  if(ans.err){
-    inner+=`
-      <div class="fb-detail">
-        Błąd SQL:
-        <code>${ans.err.replace(/</g,'&lt;')}</code>
-      </div>
-    `;
-  }
-  else if(ans.actual){
-    inner+=`
-      <div class="your-result fail">
-        <h5>Twój wynik</h5>
-        ${tblHTML(ans.actual.cols,ans.actual.rows)}
-      </div>
-    `;
+      <div class="summary">
+        <h2>🎉 Gotowe!</h2>
+        <span class="score-big">${ok}/${list.length}</span>
+        <p class="sum-msg">${pct}% poprawnych</p>
+        <p class="sum-detail">Łącznie prób: ${totalTries}</p>
+        <button class="btn-restart" onclick="restart()">Zacznij od nowa</button>
+      </div>`;
+    return;
   }
 
-  inner+=`
-    <button class="sol-toggle-btn" onclick="tog('showSol')">
-      ${UI.showSol
-        ?'▲ Ukryj rozwiązanie'
-        :'🔍 Pokaż przykładowe rozwiązanie'}
-    </button>
-  `;
+  const q = list[S.cur];
+  const ans = S.answered[q.id];
+  const prog = (S.cur/list.length)*100;
+  const okCount = Object.values(S.answered).filter(a=>a&&a.ok).length;
+  const failCount = Object.values(S.answered).filter(a=>a&&!a.ok).length;
+  const tries = S.attempts[q.id]||0;
 
-  if(UI.showSol){
-    inner+=`
-      <div class="sol-box">
-        ${q.sol.replace(/</g,'&lt;')}
-      </div>
-    `;
-  }
+  const dots = list.map((qq,i)=>{
+    const a=S.answered[qq.id];
+    const cls=a?(a.ok?'ok':'fail'):(i===S.cur?'current':'');
+    return `<div class="dot ${cls}" onclick="jumpTo(${i})" title="Pyt. ${i+1}"></div>`;
+  }).join('');
 
-  fb=`<div class="feedback fail">${inner}</div>`;
-}
-```
-
-}
-
-const hint = UI.showHint
-?`<div class="hint-box">💡 ${q.hint}</div>`
-:'';
-
-const modeBadge = q.mode==='exec'
-?'<span class="tag t-exec">⚡ EXEC</span>'
-:'<span class="tag t-kw">📝 TEKST</span>';
-
-const locked = ans&&ans.ok;
-
-app.innerHTML=` <div class="hdr">
-
-```
-  <div class="hdr-row">
-    <div>
-      <h1>SQL <span class="hl">Testownik</span></h1>
-      <div class="hdr-sub">
-        // wynik liczy się bardziej niż forma zapytania
-      </div>
+  // schema section
+  const schemaSection = q.tbls.length ? `
+    <div class="toggle-row">
+      <button class="tgl-btn" onclick="tog('showSchema')">${S.showSchema?'▲ Ukryj schemat':'▼ Schemat tabel'}</button>
+      ${q.mode==='exec'?`<button class="tgl-btn" onclick="tog('showExpected')">${S.showExpected?'▲ Ukryj wynik':'▼ Oczekiwany wynik'}</button>`:''}
     </div>
-  </div>
+    ${S.showSchema?`<div class="schema-box"><div class="schema-grid">${schemaHTML(q.tbls)}</div></div>`:''}
+    ${S.showExpected&&q.mode==='exec'?`<div class="expected-box"><h5>Oczekiwany wynik</h5>${tblHTML(runQ(q.ans).cols,runQ(q.ans).rows)}</div>`:''}
+  ` : '';
 
-  <div class="set-switcher">
-    <button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">
-      Zestaw 1 (13)
-    </button>
-
-    <button class="set-btn ${curSet===2?'active':''}" onclick="switchSet(2)">
-      Zestaw 2 (20)
-    </button>
-
-    <button class="btn-reset-all" onclick="resetAll()">
-      Resetuj postęp
-    </button>
-  </div>
-</div>
-
-<div class="progress-wrap">
-  <div class="progress-meta">
-    <span>Pytanie ${S.cur+1} z ${list.length}</span>
-    <span>${okCount} ✓ ${failCount} ✗</span>
-  </div>
-
-  <div class="progress-track">
-    <div class="progress-fill" style="width:${prog}%"></div>
-  </div>
-</div>
-
-<div class="stats">
-  <div class="stat">
-    <strong class="a">${S.cur+1}/${list.length}</strong>
-    postęp
-  </div>
-
-  <div class="stat">
-    <strong class="g">${okCount}</strong>
-    poprawne
-  </div>
-
-  <div class="stat">
-    <strong class="r">${failCount}</strong>
-    błędne
-  </div>
-
-  <div class="stat">
-    <strong class="c">${tries}</strong>
-    próby
-  </div>
-</div>
-
-<div class="nav-dots">${dots}</div>
-
-<div class="card">
-
-  <div class="q-meta">
-    <span class="q-num">
-      Pytanie ${S.cur+1}
-    </span>
-
-    <div class="q-tags">
-      ${modeBadge}
-      ${tagsHTML(q.tags)}
-    </div>
-  </div>
-
-  <div class="q-text">${q.text}</div>
-
-  ${schemaSection}
-
-  <div class="editor-label">
-    Twoje zapytanie
-    <span style="color:var(--text3);font-size:.58rem">
-      Ctrl+Enter = sprawdź
-    </span>
-  </div>
-
-  <textarea
-    class="sql-editor${ans?(ans.ok?' ok':' fail'):''}"
-    id="ed"
-    placeholder="SELECT ..."
-    ${locked?'readonly':''}
-    onkeydown="handleKey(event)"
-  >${ans?ans.val:UI.input}</textarea>
-
-  ${hint}
-
-  ${fb}
-
-  <div class="actions">
-
-    ${locked
-
-      ? `<button class="btn btn-next" onclick="next()">
-            ${S.cur<list.length-1
-              ?'Następne →'
-              :'Zobacz wyniki →'}
-          </button>`
-
-      : `<button class="btn btn-primary" onclick="check()">
-            Sprawdź ↵
-          </button>
-
-          <button class="btn btn-skip" onclick="skip()">
-            Pomiń
-          </button>
-
-          <button class="btn-hint" onclick="tog('showHint')">
-            💡 podpowiedź
-          </button>
-
-          ${ans&&!ans.ok
-            ?`<button class="btn btn-retry" onclick="retry()">
-                🔄 Spróbuj ponownie
-              </button>`
-            :''
-          }`
+  // feedback
+  let fb='';
+  if(ans){
+    if(ans.ok){
+      fb=`<div class="feedback ok">
+        <span class="fb-label">✓ Poprawnie! (próba ${tries})</span>
+        ${ans.actual?`<div class="your-result ok"><h5>Twój wynik</h5>${tblHTML(ans.actual.cols,ans.actual.rows)}</div>`:''}
+      </div>`;
+    } else {
+      let inner=`<span class="fb-label">✗ Niepoprawnie (próba ${tries})</span>`;
+      if(ans.err) inner+=`<div class="fb-detail">Błąd SQL: <code>${ans.err.replace(/</g,'&lt;')}</code></div>`;
+      else if(ans.actual) inner+=`<div class="your-result fail"><h5>Twój wynik</h5>${tblHTML(ans.actual.cols,ans.actual.rows)}</div>`;
+      // rozwiązanie ukryte, pokazuj tylko na żądanie
+      inner+=`<button class="sol-toggle-btn" onclick="tog('showSol')">${S.showSol?'▲ Ukryj rozwiązanie':'🔍 Pokaż przykładowe rozwiązanie'}</button>`;
+      if(S.showSol) inner+=`<div class="sol-box">${q.sol.replace(/</g,'&lt;')}</div>`;
+      fb=`<div class="feedback fail">${inner}</div>`;
     }
+  }
 
-  </div>
-</div>
-```
+  const hint = S.showHint?`<div class="hint-box">💡 ${q.hint}</div>`:'';
+  const modeBadge = q.mode==='exec'?'<span class="tag t-exec">⚡ EXEC</span>':'<span class="tag t-kw">📝 TEKST</span>';
+  const locked = ans&&ans.ok; // zablokuj edytor tylko po poprawnej odpowiedzi
 
-`;
+  app.innerHTML=`
+    <div class="hdr">
+      <div class="hdr-row">
+        <div><h1>SQL <span class="hl">Testownik</span></h1><div class="hdr-sub">// wynik liczy się bardziej niż forma zapytania</div></div>
+      </div>
+      <div class="set-switcher">
+        <button class="set-btn ${curSet===1?'active':''}" onclick="switchSet(1)">Zestaw 1 (13)</button>
+        <button class="set-btn ${curSet===2?'active':''}" onclick="switchSet(2)">Zestaw 2 (20)</button>
+        <button class="btn-reset-all" onclick="resetAll()">Resetuj postęp</button>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-meta"><span>Pytanie ${S.cur+1} z ${list.length}</span><span>${okCount} ✓  ${failCount} ✗</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${prog}%"></div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><strong class="a">${S.cur+1}/${list.length}</strong>postęp</div>
+      <div class="stat"><strong class="g">${okCount}</strong>poprawne</div>
+      <div class="stat"><strong class="r">${failCount}</strong>błędne</div>
+      <div class="stat"><strong class="c">${tries}</strong>próby</div>
+    </div>
+    <div class="nav-dots">${dots}</div>
+    <div class="card">
+      <div class="q-meta">
+        <span class="q-num">Pytanie ${S.cur+1}</span>
+        <div class="q-tags">${modeBadge} ${tagsHTML(q.tags)}</div>
+      </div>
+      <div class="q-text">${q.text}</div>
+      ${schemaSection}
+      <div class="editor-label">Twoje zapytanie &nbsp;<span style="color:var(--text3);font-size:.58rem">Ctrl+Enter = sprawdź</span></div>
+      <textarea class="sql-editor${ans?(ans.ok?' ok':' fail'):''}" id="ed"
+        placeholder="SELECT ..."
+        ${locked?'readonly':''}
+        onkeydown="handleKey(event)">${ans?ans.val:S.input}</textarea>
+      ${hint}
+      ${fb}
+      <div class="actions">
+        ${locked
+          ? `<button class="btn btn-next" onclick="next()">${S.cur<list.length-1?'Następne →':'Zobacz wyniki →'}</button>`
+          : `<button class="btn btn-primary" onclick="check()">Sprawdź ↵</button>
+             <button class="btn btn-skip" onclick="skip()">Pomiń</button>
+             <button class="btn-hint" onclick="tog('showHint')">💡 podpowiedź</button>
+             ${ans&&!ans.ok?`<button class="btn btn-retry" onclick="retry()">🔄 Spróbuj ponownie</button>`:''}`
+        }
+      </div>
+    </div>`;
 
-if(!locked){
-const ed=document.getElementById('ed');
-
-```
-if(ed){
-  ed.focus();
-  ed.setSelectionRange(ed.value.length,ed.value.length);
-}
-```
-
-}
+  if(!locked){ const ed=document.getElementById('ed'); if(ed){ed.focus();ed.setSelectionRange(ed.value.length,ed.value.length);} }
 }
 
 // ─── ACTIONS ────────────────────────────────────────────────────────
-
-function tog(k){
-
-const ed=document.getElementById('ed');
-
-if(ed){
-UI.input=ed.value;
-}
-
-UI[k]=!UI[k];
-
-render();
-}
-
-function jumpTo(i){
-
-const S = getState();
-
-const ed=document.getElementById('ed');
-
-if(ed){
-UI.input=ed.value;
-}
-
-S.cur=i;
-
-UI.showSchema=false;
-UI.showExpected=false;
-UI.showHint=false;
-UI.showSol=false;
-
-render();
-
-save();
-}
-
-function retry(){
-
-const S = getState();
-
-const q=qs()[S.cur];
-
-delete S.answered[q.id];
-
-UI.showSol=false;
-UI.input='';
-
-render();
-}
+function tog(k){ const ed=document.getElementById('ed'); if(ed) S.input=ed.value; S[k]=!S[k]; render(); }
+function jumpTo(i){ const ed=document.getElementById('ed'); if(ed) S.input=ed.value; S.cur=i; S.showSchema=false;S.showExpected=false;S.showHint=false;S.showSol=false; render(); save(); }
+function retry(){ const q=qs()[S.cur]; delete S.answered[q.id]; S.showSol=false; S.input=''; render(); }
 
 function check(){
+  const ed=document.getElementById('ed');
+  const val=ed?ed.value.trim():''; if(!val) return;
+  const q=qs()[S.cur];
+  S.attempts[q.id]=(S.attempts[q.id]||0)+1;
 
-const S = getState();
-
-const ed=document.getElementById('ed');
-
-const val=ed?ed.value.trim():'';
-
-if(!val) return;
-
-const q=qs()[S.cur];
-
-S.attempts[q.id]=(S.attempts[q.id]||0)+1;
-
-if(q.mode==='text'){
-
-```
-const ok=checkText(val,q.kws);
-
-S.answered[q.id]={ok,val};
-```
-
-} else {
-
-```
-const r=compare(val,q.ans);
-
-if(r.ok){
-  S.answered[q.id]={
-    ok:true,
-    val,
-    actual:r.actual
-  };
-}
-else if(r.mismatch){
-  S.answered[q.id]={
-    ok:false,
-    val,
-    actual:r.actual
-  };
-}
-else{
-  S.answered[q.id]={
-    ok:false,
-    val,
-    err:r.err
-  };
-}
-```
-
+  if(q.mode==='text'){
+    const ok=checkText(val,q.kws);
+    S.answered[q.id]={ok,val};
+  } else {
+    const r=compare(val,q.ans);
+    if(r.ok) S.answered[q.id]={ok:true,val,actual:r.actual};
+    else if(r.mismatch) S.answered[q.id]={ok:false,val,actual:r.actual};
+    else S.answered[q.id]={ok:false,val,err:r.err};
+  }
+  S.showSol=false;
+  save(); render();
 }
 
-UI.showSol=false;
-
-save();
-
-render();
-}
-
-function skip(){
-
-const S = getState();
-
-const q=qs()[S.cur];
-
-S.answered[q.id]={
-ok:false,
-val:'',
-skipped:true
-};
-
-save();
-
-next();
-}
-
-function next(){
-
-const S = getState();
-
-UI.showHint=false;
-UI.showExpected=false;
-UI.showSchema=false;
-UI.showSol=false;
-UI.input='';
-
-const l=qs();
-
-if(S.cur<l.length-1){
-S.cur++;
-render();
-}
-else{
-S.done=true;
-render();
-}
-
-save();
-}
-
-function handleKey(e){
-if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){
-e.preventDefault();
-check();
-}
-}
-
-function restart(){
-
-stateBySet[curSet] = {
-cur:0,
-answered:{},
-attempts:{},
-done:false
-};
-
-UI = {
-showSchema:false,
-showExpected:false,
-showHint:false,
-showSol:false,
-input:''
-};
-
-save();
-
-render();
-}
-
-function switchSet(n){
-
-const ed = document.getElementById('ed');
-
-if(ed){
-UI.input = ed.value;
-}
-
-curSet = n;
-
-UI.showSchema = false;
-UI.showExpected = false;
-UI.showHint = false;
-UI.showSol = false;
-UI.input = '';
-
-save();
-
-render();
-}
-
+function skip(){ const q=qs()[S.cur]; S.answered[q.id]={ok:false,val:'',skipped:true}; save(); next(); }
+function next(){ S.showHint=false;S.showExpected=false;S.showSchema=false;S.showSol=false;S.input=''; const l=qs(); if(S.cur<l.length-1){S.cur++;render();}else{S.done=true;render();} save(); }
+function handleKey(e){ if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();check();} }
+function restart(){ S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false}; save(); render(); }
+function switchSet(n){ curSet=n; S={cur:0,answered:{},attempts:{},showSchema:false,showExpected:false,showHint:false,showSol:false,input:'',done:false}; save(); render(); }
 
 // ─── INIT ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
